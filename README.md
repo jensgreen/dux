@@ -1,19 +1,9 @@
 # dux
 
-Disk usage visualizer. Like [`du(1)`](https://en.wikipedia.org/wiki/Du_(Unix)),
-but displays the result as an interactive
+A disk usage analyzer. Like [`du(1)`](https://en.wikipedia.org/wiki/Du_(Unix)),
+but displays the results as an interactive
 [treemap](https://en.wikipedia.org/wiki/Treemapping).
 
-`du` example:
-```
-$ du ./testdata
-8	./testdata/example/inner/nested
-24	./testdata/example/inner
-32	./testdata/example
-32	./testdata
-```
-
-`dux` example:
 ```
 testdata 111B (8 files)     (4)
 ┌testdata/ 111B────────────────────────────────────────────────────────────────┐
@@ -41,3 +31,21 @@ testdata 111B (8 files)     (4)
 │└────────────────────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+# Installation
+
+```sh
+go install github.com/jensgreen/dux@latest
+```
+
+# Usage
+
+```
+Usage: dux [--help] [DIRECTORY]
+Visually summarize disk usage of DIRECTORY (the current directory by default).
+
+Options:
+      --help     display this help and exit
+```
+
+Use `+`/`-` to increase/decrease depth, and `q` or `Ctrl-C` to quit.

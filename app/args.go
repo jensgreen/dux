@@ -1,4 +1,4 @@
-package dux
+package app
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, desc)
 }
 
-// ArgsOrExit returns valid parameters, or, on either --help or invalid input, exits the program
-func ArgsOrExit() (path string, debug bool) {
+// argsOrExit returns valid parameters, or, on either --help or invalid input, exits the program
+func argsOrExit() (path string, debug bool) {
 	var (
 		args       []string = os.Args[1:]
 		help       bool
@@ -41,7 +41,7 @@ func ArgsOrExit() (path string, debug bool) {
 			path = arg
 		}
 
-		if exit, code := mayeExit(unknownOpt, help); exit {
+		if exit, code := maybeExit(unknownOpt, help); exit {
 			os.Exit(code)
 		}
 	}
@@ -51,7 +51,7 @@ func ArgsOrExit() (path string, debug bool) {
 	return path, debug
 }
 
-func mayeExit(unknownOpt string, help bool) (exit bool, code int) {
+func maybeExit(unknownOpt string, help bool) (exit bool, code int) {
 	switch {
 	case unknownOpt != "":
 		// mimic `git --a` unknown opt behavior:

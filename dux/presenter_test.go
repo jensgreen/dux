@@ -41,7 +41,7 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 	fileEvents := make(chan files.FileEvent)
 	commands := make(chan Command)
 	go func() {
-		files.WalkDir("testdata/example/inner", fileEvents, os.ReadDir)
+		files.WalkDir("../testdata/example/inner", fileEvents, os.ReadDir)
 		commands <- Quit{}
 	}()
 
@@ -51,7 +51,7 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 
 	for e := range stateUpdates {
 		f := e.State.Treemap.File
-		if !strings.Contains(f.Path, "testdata/example/inner") {
+		if !strings.Contains(f.Path, "../testdata/example/inner") {
 			t.Fail()
 		}
 	}

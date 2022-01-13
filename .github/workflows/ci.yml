@@ -23,6 +23,3 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-
-    - name: Print example output
-      run: go run cmd/example/main.go testdata

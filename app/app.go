@@ -1,29 +1,26 @@
-package main
+package app
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/jensgreen/dux"
+	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/files"
 	"github.com/jensgreen/dux/logging"
 )
 
-func main() {
-	path, debug := dux.ArgsOrExit()
+func Run() error {
+	path, debug := argsOrExit()
 	logging.Setup(debug)
 	disableTruecolor()
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 	s, err := tcell.NewScreen()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		return err
 	}
 	err = s.Init()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		return err
 	}
 	defer s.Fini()
 	s.Clear()
@@ -49,6 +46,7 @@ func main() {
 	tui := dux.NewTerminalView(s, treemapEvents, commands)
 	go tui.UserInputLoop()
 	tui.MainLoop()
+	return nil
 }
 
 // disableTruecolor makes us follow the terminal color scheme by disabling tcell's truecolor support

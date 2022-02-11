@@ -1,7 +1,10 @@
 package app
 
 import (
+	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jensgreen/dux/dux"
@@ -27,8 +30,10 @@ func Run() error {
 
 	fileEvents := make(chan files.FileEvent)
 	treemapEvents := make(chan dux.StateUpdate)
-	go files.WalkDir(path, fileEvents, os.ReadDir)
 	commands := make(chan dux.Command)
+
+	go signalHandler(commands)
+	go files.WalkDir(path, fileEvents, os.ReadDir)
 
 	initState := dux.State{
 		MaxDepth:       2,
@@ -48,6 +53,17 @@ func Run() error {
 	go tui.UserInputLoop()
 	tui.MainLoop()
 	return nil
+}
+
+func signalHandler(commands chan<- dux.Command) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-signals
+	log.Printf("Got signal %s", sig.String())
+	switch sig {
+	case syscall.SIGINT, syscall.SIGTERM:
+		commands <- dux.Quit{}
+	}
 }
 
 // disableTruecolor makes us follow the terminal color scheme by disabling tcell's truecolor support

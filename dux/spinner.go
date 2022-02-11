@@ -39,9 +39,5 @@ func (s *spinner) Tick() {
 }
 
 func (s *spinner) nextFrame() int {
-	var i = s.frame + 1
-	if i == len(_frames) {
-		return 0
-	}
-	return i
+	return (s.frame + 1) % len(_frames)
 }

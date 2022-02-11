@@ -17,6 +17,7 @@ type State struct {
 	StatusbarSpazeZ2 z2.Rect
 	TreemapSpaceR2   r2.Rect
 	TotalFiles       int
+	IsWalkingFiles   bool
 }
 
 type StateUpdate struct {
@@ -100,7 +101,8 @@ func (p *Presenter) tick() {
 		if !ok {
 			// when closed, never select this channel again
 			p.FileEvents = nil
-			return
+			p.state.IsWalkingFiles = false
+			break
 		}
 		if event.Error != nil {
 			errs = append(errs, event.Error)

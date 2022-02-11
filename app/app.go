@@ -31,7 +31,8 @@ func Run() error {
 	commands := make(chan dux.Command)
 
 	initState := dux.State{
-		MaxDepth: 2,
+		MaxDepth:       2,
+		IsWalkingFiles: true,
 	}
 
 	pres := dux.NewPresenter(

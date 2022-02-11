@@ -63,7 +63,7 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 
 func Test_EmitsStateUpdateForRootOnEachFileEvent(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 2)
-	stateUpdates := make(chan StateUpdate, 3)
+	stateUpdates := make(chan StateUpdate, 4)
 	commands := make(chan Command, 1)
 
 	parent := files.File{Path: "foo"}

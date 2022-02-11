@@ -57,10 +57,6 @@ func (tv *TerminalView) poll() bool {
 	return true
 }
 
-func (tv *TerminalView) isFinished() bool {
-	return tv.stateUpdates == nil
-}
-
 func (tv *TerminalView) UserInputLoop() {
 	s := tv.screen
 	for {
@@ -218,7 +214,7 @@ func (tv *TerminalView) drawStatusbar(state State) {
 	file := state.Treemap.File
 	statusbar := state.StatusbarSpazeZ2
 	var s string = fmt.Sprintf("%s %s (%d files)", file.Path, files.HumanizeIEC(file.Size), state.TotalFiles)
-	if !tv.isFinished() {
+	if state.IsWalkingFiles {
 		s = fmt.Sprintf("%s %s", s, tv.spinner.String())
 	}
 	s = fmt.Sprintf("%s (%d)", s, state.MaxDepth)

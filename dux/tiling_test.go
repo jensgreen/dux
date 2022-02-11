@@ -60,8 +60,8 @@ func TestSliceAndDice_SliceOrientationDependsOnDepth(t *testing.T) {
 	fileTree := files.FileTree{
 		File: files.File{Size: 2},
 		Children: []files.FileTree{
-			{files.File{Path: "foo", IsDir: false, Size: 1}, nil},
-			{files.File{Path: "bar", IsDir: false, Size: 1}, nil},
+			{File: files.File{Path: "foo", IsDir: false, Size: 1}, Children: nil},
+			{File: files.File{Path: "bar", IsDir: false, Size: 1}, Children: nil},
 		},
 	}
 

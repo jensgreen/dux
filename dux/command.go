@@ -42,10 +42,8 @@ type Resize struct {
 
 func (cmd Resize) Execute(state State) State {
 	log.Printf("Window resized to (%d, %d)", cmd.WindowWidth, cmd.WindowHeight)
-	screenZ2, statusbarZ2, treemapR2 := cmd.calcAreas(cmd.WindowWidth, cmd.WindowHeight)
-	state.ScreenSpaceZ2 = screenZ2
-	state.StatusbarSpazeZ2 = statusbarZ2
-	state.TreemapSpaceR2 = treemapR2
+	_, _, treemapR2 := cmd.calcAreas(cmd.WindowWidth, cmd.WindowHeight)
+	state.TreemapRect = treemapR2
 	return state
 }
 

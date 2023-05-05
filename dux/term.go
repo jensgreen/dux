@@ -150,7 +150,7 @@ func (tv *TerminalView) drawTreemapPane(state State) {
 
 func (tv *TerminalView) drawTreemap(state State, tm intTreemap, isRoot bool) {
 	f := tm.File
-	rect := tv.closeHalfOpen(tv.treemapSpaceToScreenSpace(tm.Rect, state.StatusbarSpazeZ2))
+	rect := tm.Rect // .closeHalfOpen(tv.treemapSpaceToScreenSpace(tm.Rect, state.StatusbarSpazeZ2))
 	log.Printf("Drawing %s at %v", f.Path, rect)
 	tv.drawBox(rect)
 	tv.drawLabel(rect, f, isRoot)
@@ -210,24 +210,24 @@ func (tv *TerminalView) drawString(xrange z2.Interval, y int, s string, combc []
 	}
 }
 
-func (tv *TerminalView) drawStatusbar(state State) {
-	file := state.Treemap.File
-	statusbar := state.StatusbarSpazeZ2
-	var s string = fmt.Sprintf("%s %s (%d files)", file.Path, files.HumanizeIEC(file.Size), state.TotalFiles)
-	if state.IsWalkingFiles {
-		s = fmt.Sprintf("%s %s", s, tv.spinner.String())
-	}
-	s = fmt.Sprintf("%s (%d)", s, state.MaxDepth)
-	s = fmt.Sprintf("%-*v", statusbar.X.Length()-1, s)
+// func (tv *TerminalView) drawStatusbar(state State) {
+// 	file := state.Treemap.File
+// 	statusbar := state.StatusbarSpazeZ2
+// 	var s string = fmt.Sprintf("%s %s (%d files)", file.Path, files.HumanizeIEC(file.Size), state.TotalFiles)
+// 	if state.IsWalkingFiles {
+// 		s = fmt.Sprintf("%s %s", s, tv.spinner.String())
+// 	}
+// 	s = fmt.Sprintf("%s (%d)", s, state.MaxDepth)
+// 	s = fmt.Sprintf("%-*v", statusbar.X.Length()-1, s)
 
-	y := statusbar.Y.Lo
-	style := tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)
-	tv.drawString(statusbar.X, y, s, nil, style)
-}
+// 	y := statusbar.Y.Lo
+// 	style := tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)
+// 	tv.drawString(statusbar.X, y, s, nil, style)
+// }
 
 func (tv *TerminalView) update(state State) {
 	tv.screen.Clear()
-	tv.drawStatusbar(state)
+	// tv.drawStatusbar(state)
 	tv.drawTreemapPane(state)
 	tv.screen.Show()
 }

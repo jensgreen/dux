@@ -77,7 +77,7 @@ func Test_OutputContainsNameAndSize(t *testing.T) {
 						X: z2.Interval{Lo: 0, Hi: TermWidth},
 						Y: z2.Interval{Lo: 0, Hi: 1},
 					},
-					TreemapSpaceR2: r2.Rect{
+					TreemapRect: r2.Rect{
 						X: r1.Interval{Lo: 0, Hi: TermWidth},
 						Y: r1.Interval{Lo: 0, Hi: TermHeight - 1},
 					},

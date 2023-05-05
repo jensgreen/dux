@@ -90,7 +90,7 @@ func (tv *TerminalView) UserInputLoop() {
 				// An EventRize will be sent on tcell.Screen.Init(), so there is no
 				// need to set an initial size.
 				w, h := ev.Size()
-				tv.commands <- Resize{WindowWidth: w, WindowHeight: h}
+				tv.commands <- Resize{Width: w, Height: h}
 			}
 		}
 	}
@@ -150,7 +150,7 @@ func (tv *TerminalView) drawTreemapPane(state State) {
 
 func (tv *TerminalView) drawTreemap(state State, tm intTreemap, isRoot bool) {
 	f := tm.File
-	rect := tm.Rect // .closeHalfOpen(tv.treemapSpaceToScreenSpace(tm.Rect, state.StatusbarSpazeZ2))
+	rect := tm.Rect
 	log.Printf("Drawing %s at %v", f.Path, rect)
 	tv.drawBox(rect)
 	tv.drawLabel(rect, f, isRoot)

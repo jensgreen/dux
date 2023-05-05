@@ -9,14 +9,14 @@ type MainPanel struct {
 	views.Panel
 }
 
-func NewMainPanel(tv *TreemapView) *MainPanel {
+func NewMainPanel(title *TitleBar, tv *TreemapView) *MainPanel {
 	m := &MainPanel{}
-
-	m.SetTitle(NewTitleBar())
 
 	sb := views.NewText()
 	sb.SetText("statusbar")
 	m.SetStatus(sb)
+
+	m.SetTitle(title)
 
 	m.tv = tv
 	m.SetContent(m.tv)

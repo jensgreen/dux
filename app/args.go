@@ -21,8 +21,8 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, desc)
 }
 
-// argsOrExit returns valid parameters, or, on either --help or invalid input, exits the program
-func argsOrExit() (path string, debug bool) {
+// ArgsOrExit returns valid parameters, or, on either --help or invalid input, exits the program
+func ArgsOrExit() (path string, debug bool) {
 	var (
 		args       []string = os.Args[1:]
 		help       bool

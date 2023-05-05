@@ -16,9 +16,15 @@ import (
 type App struct {
 	path string
 
-	app   *views.Application
-	panel views.Widget
-	view  views.View
+	app         *views.Application
+	main        *MainPanel
+	panel       views.Widget
+	treemapView *TreemapView
+	view        views.View
+
+	fileEvents    chan files.FileEvent
+	treemapEvents chan dux.StateUpdate
+	commands      chan dux.Command
 
 	views.WidgetWatchers
 }
@@ -55,8 +61,15 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventResize:
 		// An EventRize will be sent on tcell.Screen.Init(), so there is no
 		// need to set an initial size.
-		// w, h := ev.Size()
+		panic("resize")
+		log.Printf("FOOOO Handling EventResize, %+v", ev)
 		a.Resize()
+		return true
+	case *views.EventWidgetContent:
+		panic("content")
+		log.Printf("Handling EventWidgetContent event from %T", ev.Widget())
+		ev.Widget().Draw()
+		return true
 	}
 
 	if a.panel != nil {
@@ -67,6 +80,11 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 
 func (a *App) Resize() {
 	a.panel.Resize()
+	a.commands <- dux.Resize{
+		WindowWidth:  a.treemapView.width,
+		WindowHeight: a.treemapView.height,
+	}
+	a.PostEventWidgetResize(a)
 }
 
 func (a *App) Run() error {
@@ -74,32 +92,38 @@ func (a *App) Run() error {
 
 	a.app.SetRootWidget(a)
 	a.show(a.panel)
+	fileEvents := make(chan files.FileEvent)
+	treemapEvents := make(chan dux.StateUpdate)
+	commands := make(chan dux.Command)
 
-	// fileEvents := make(chan files.FileEvent)
-	// treemapEvents := make(chan dux.StateUpdate)
-	// commands := make(chan dux.Command)
+	a.fileEvents = fileEvents
+	a.treemapEvents = treemapEvents
+	a.commands = commands
 
-	// go signalHandler(commands)
-	// go files.WalkDir(a.path, fileEvents, os.ReadDir)
+	go signalHandler(commands)
+	go files.WalkDir(a.path, fileEvents, os.ReadDir)
 
-	// initState := dux.State{
-	// 	MaxDepth:       2,
-	// 	IsWalkingFiles: true,
-	// }
+	initState := dux.State{
+		MaxDepth:       2,
+		IsWalkingFiles: true,
+	}
 
-	// pres := dux.NewPresenter(
-	// 	fileEvents,
-	// 	commands,
-	// 	treemapEvents,
-	// 	initState,
-	// 	dux.WithPadding(dux.SliceAndDice{}, 1.0),
-	// )
-	// go pres.Loop()
+	pres := dux.NewPresenter(
+		fileEvents,
+		commands,
+		treemapEvents,
+		initState,
+		dux.WithPadding(dux.SliceAndDice{}, 1.0),
+	)
+	go pres.Loop()
 
-	// tui := dux.NewTerminalView(s, treemapEvents, commands)
-	// go tui.UserInputLoop()
-	// tui.MainLoop()
-	// return nil
+	go func() {
+		for update := range treemapEvents {
+			a.app.PostFunc(func() {
+				a.treemapView.Update(update.State)
+			})
+		}
+	}()
 
 	a.app.Run()
 	return nil
@@ -130,14 +154,17 @@ func (a *App) show(w views.Widget) {
 }
 
 func NewApp(path string) *App {
-	app := &App{
-		path: path,
-	}
-	app.app = &views.Application{}
-
 	tv := NewTreemapView()
 	main := NewMainPanel(tv)
-	app.panel = main
+
+	app := &App{
+		app:         &views.Application{},
+		path:        path,
+		main:        main,
+		panel:       main,
+		treemapView: tv,
+	}
+	// app.Watch(tv)
 
 	return app
 }

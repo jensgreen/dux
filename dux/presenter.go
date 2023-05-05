@@ -6,18 +6,15 @@ import (
 
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/z2"
 )
 
 type State struct {
-	Treemap          Treemap
-	Quit             bool
-	MaxDepth         int
-	ScreenSpaceZ2    z2.Rect
-	StatusbarSpazeZ2 z2.Rect
-	TreemapSpaceR2   r2.Rect
-	TotalFiles       int
-	IsWalkingFiles   bool
+	Treemap        Treemap
+	Quit           bool
+	MaxDepth       int
+	TreemapRect    r2.Rect
+	TotalFiles     int
+	IsWalkingFiles bool
 }
 
 type StateUpdate struct {
@@ -114,10 +111,12 @@ func (p *Presenter) tick() {
 		p.state.TotalFiles = len(p.pathLookup)
 	}
 	if p.root != nil {
-		rootTreemap := TreemapWithTiler(*p.root, p.state.TreemapSpaceR2, p.Tiler, p.state.MaxDepth, 0)
+		rootTreemap := TreemapWithTiler(*p.root, p.state.TreemapRect, p.Tiler, p.state.MaxDepth, 0)
 		p.state.Treemap = rootTreemap
 	}
+	log.Printf("Sending StateUpdate")
 	p.StateUpdates <- StateUpdate{State: p.state, Errors: errs}
+	log.Printf("Sent StateUpdate")
 	if p.state.Quit {
 		close(p.StateUpdates)
 	}

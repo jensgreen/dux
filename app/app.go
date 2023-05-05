@@ -19,6 +19,7 @@ type App struct {
 	app         *views.Application
 	main        *MainPanel
 	panel       views.Widget
+	titleBar    *TitleBar
 	treemapView *TreemapView
 	view        views.View
 
@@ -45,11 +46,11 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 				a.app.Quit()
 				return true
 			case '+':
-				return false
-				// tv.commands <- IncreaseMaxDepth{}
+				a.commands <- dux.IncreaseMaxDepth{}
+				return true
 			case '-':
-				return false
-				// tv.commands <- DecreaseMaxDepth{}
+				a.commands <- dux.DecreaseMaxDepth{}
+				return true
 			}
 		case tcell.KeyEscape, tcell.KeyCtrlC:
 			a.app.Quit()
@@ -59,30 +60,19 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 	case *tcell.EventResize:
-		// An EventRize will be sent on tcell.Screen.Init(), so there is no
-		// need to set an initial size.
-		panic("resize")
-		log.Printf("FOOOO Handling EventResize, %+v", ev)
-		a.Resize()
-		return true
-	case *views.EventWidgetContent:
-		panic("content")
-		log.Printf("Handling EventWidgetContent event from %T", ev.Widget())
-		ev.Widget().Draw()
-		return true
+		// views.Application.run() handles EventResize by delegating it to our Resize() method,
+		// so no need to handle it here.
+		panic("Unexpected EventResize")
 	}
 
-	if a.panel != nil {
-		return a.panel.HandleEvent(ev)
-	}
-	return false
+	return a.panel.HandleEvent(ev)
 }
 
 func (a *App) Resize() {
 	a.panel.Resize()
 	a.commands <- dux.Resize{
-		WindowWidth:  a.treemapView.width,
-		WindowHeight: a.treemapView.height,
+		Width:  a.treemapView.width,
+		Height: a.treemapView.height,
 	}
 	a.PostEventWidgetResize(a)
 }
@@ -120,6 +110,7 @@ func (a *App) Run() error {
 	go func() {
 		for update := range treemapEvents {
 			a.app.PostFunc(func() {
+				a.titleBar.Update(update.State)
 				a.treemapView.Update(update.State)
 			})
 		}
@@ -155,16 +146,17 @@ func (a *App) show(w views.Widget) {
 
 func NewApp(path string) *App {
 	tv := NewTreemapView()
-	main := NewMainPanel(tv)
+	title := NewTitleBar()
+	main := NewMainPanel(title, tv)
 
 	app := &App{
 		app:         &views.Application{},
 		path:        path,
 		main:        main,
 		panel:       main,
+		titleBar:    title,
 		treemapView: tv,
 	}
-	// app.Watch(tv)
 
 	return app
 }

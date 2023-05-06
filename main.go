@@ -14,6 +14,7 @@ func main() {
 
 	app := app.NewApp(path)
 	err := app.Run()
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

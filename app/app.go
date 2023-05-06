@@ -116,8 +116,8 @@ func (a *App) Run() error {
 		}
 	}()
 
-	a.app.Run()
-	return nil
+	err := a.app.Run()
+	return err
 }
 
 func (a *App) SetView(view views.View) {

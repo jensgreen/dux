@@ -2,6 +2,7 @@ package dux
 
 import (
 	"log"
+	"sync"
 
 	"github.com/golang/geo/r1"
 	"github.com/golang/geo/r2"
@@ -15,6 +16,13 @@ type Quit struct{}
 
 func (Quit) Execute(state State) State {
 	state.Quit = true
+	return state
+}
+
+type Refresh struct{}
+
+func (Refresh) Execute(state State) State {
+	state.Refresh = sync.Once{}
 	return state
 }
 

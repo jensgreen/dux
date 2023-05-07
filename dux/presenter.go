@@ -3,6 +3,7 @@ package dux
 import (
 	"log"
 	"path/filepath"
+	"sync"
 
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
@@ -15,6 +16,7 @@ type State struct {
 	TreemapRect    r2.Rect
 	TotalFiles     int
 	IsWalkingFiles bool
+	Refresh        sync.Once
 }
 
 type StateUpdate struct {

@@ -16,7 +16,7 @@ import (
 type App struct {
 	path string
 
-	app         *views.Application
+	app         *Application2
 	main        *MainPanel
 	panel       views.Widget
 	titleBar    *TitleBar
@@ -28,6 +28,11 @@ type App struct {
 	commands      chan dux.Command
 
 	views.WidgetWatchers
+}
+
+func (a *App) SetState(state dux.State) {
+	a.titleBar.SetState(state)
+	a.treemapView.SetState(state)
 }
 
 func (a *App) Draw() {
@@ -43,7 +48,7 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 		case tcell.KeyRune:
 			switch ev.Rune() {
 			case 'q':
-				a.app.Quit()
+				a.commands <- dux.Quit{}
 				return true
 			case '+':
 				a.commands <- dux.IncreaseMaxDepth{}
@@ -53,10 +58,10 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 		case tcell.KeyEscape, tcell.KeyCtrlC:
-			a.app.Quit()
+			a.commands <- dux.Quit{}
 			return true
 		case tcell.KeyCtrlL:
-			a.app.Refresh()
+			a.commands <- dux.Refresh{}
 			return true
 		}
 	case *tcell.EventResize:
@@ -89,6 +94,9 @@ func (a *App) Run() error {
 	a.fileEvents = fileEvents
 	a.treemapEvents = treemapEvents
 	a.commands = commands
+	a.app.SetCommandChan(a.commands)
+	a.app.SetStateChan(a.treemapEvents)
+	a.app.SetStateSetter(a.SetState)
 
 	go signalHandler(commands)
 	go files.WalkDir(a.path, fileEvents, os.ReadDir)
@@ -107,15 +115,6 @@ func (a *App) Run() error {
 	)
 	go pres.Loop()
 
-	go func() {
-		for update := range treemapEvents {
-			a.app.PostFunc(func() {
-				a.titleBar.Update(update.State)
-				a.treemapView.Update(update.State)
-			})
-		}
-	}()
-
 	err := a.app.Run()
 	return err
 }
@@ -132,16 +131,14 @@ func (a *App) Size() (int, int) {
 }
 
 func (a *App) show(w views.Widget) {
-	a.app.PostFunc(func() {
-		if w != a.panel {
-			a.panel.SetView(nil)
-			a.panel = w
-		}
+	if w != a.panel {
+		a.panel.SetView(nil)
+		a.panel = w
+	}
 
-		a.panel.SetView(a.view)
-		a.Resize()
-		a.app.Refresh()
-	})
+	a.panel.SetView(a.view)
+	// a.Resize()
+	// a.app.Refresh()
 }
 
 func NewApp(path string) *App {
@@ -150,7 +147,7 @@ func NewApp(path string) *App {
 	main := NewMainPanel(title, tv)
 
 	app := &App{
-		app:         &views.Application{},
+		app:         &Application2{},
 		path:        path,
 		main:        main,
 		panel:       main,

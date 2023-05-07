@@ -20,6 +20,10 @@ type TreemapView struct {
 	views.WidgetWatchers
 }
 
+func (tv *TreemapView) SetState(state dux.State) {
+	tv.state = state
+}
+
 // Draw is called to inform the widget to draw itself.  A containing
 // Widget will generally call this during the application draw loop.
 func (tv *TreemapView) Draw() {

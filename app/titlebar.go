@@ -20,14 +20,13 @@ type TitleBar struct {
 	views.WidgetWatchers
 }
 
-func (tb *TitleBar) Update(state dux.State) {
+func (tb *TitleBar) SetState(state dux.State) {
 	tb.path = state.Treemap.File.Path
 	tb.size = state.Treemap.File.Size
 	tb.numFiles = state.TotalFiles
 	tb.maxDepth = state.MaxDepth
 	tb.updateText()
-	tb.Draw()
-	tb.PostEventWidgetContent(tb)
+	// tb.PostEventWidgetContent(tb)
 }
 
 func (tb *TitleBar) updateText() {

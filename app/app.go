@@ -28,29 +28,47 @@ type App struct {
 	view   views.View
 	widget views.Widget
 	wg     sync.WaitGroup
-	err    error
 
 	fileEvents    chan files.FileEvent
 	treemapEvents chan dux.StateUpdate
 	commands      chan dux.Command
-	errors        []error
-
-	views.WidgetWatchers
 }
 
-func (a *App) SetState(ev dux.StateUpdate) {
-	a.errors = ev.Errors
-	a.titleBar.SetState(ev.State)
-	a.treemapView.SetState(ev.State)
+func (app *App) Run() error {
+	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
+
+	err := app.init()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		app.screen.Fini()
+	}()
+
+	go signalHandler(app.commands)
+	go files.WalkDir(app.path, app.fileEvents, os.ReadDir)
+
+	initState := dux.State{
+		MaxDepth:       2,
+		IsWalkingFiles: true,
+	}
+
+	pres := dux.NewPresenter(
+		app.fileEvents,
+		app.commands,
+		app.treemapEvents,
+		initState,
+		dux.WithPadding(dux.SliceAndDice{}, 1.0),
+	)
+	go pres.Loop()
+
+	app.startEventLoop()
+	app.startDrawLoop()
+	app.wg.Wait()
+	return err
 }
 
-func (a *App) Draw() {
-	a.printErrors()
-	a.widget.Draw()
-	a.screen.Show()
-}
-
-func (a *App) HandleEvent(ev tcell.Event) bool {
+func (app *App) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		mod, key, ch := ev.Modifiers(), ev.Key(), ev.Rune()
@@ -59,112 +77,73 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 		case tcell.KeyRune:
 			switch ev.Rune() {
 			case 'q':
-				a.commands <- dux.Quit{}
+				app.commands <- dux.Quit{}
 				return true
 			case '+':
-				a.commands <- dux.IncreaseMaxDepth{}
+				app.commands <- dux.IncreaseMaxDepth{}
 				return true
 			case '-':
-				a.commands <- dux.DecreaseMaxDepth{}
+				app.commands <- dux.DecreaseMaxDepth{}
 				return true
 			}
 		case tcell.KeyEscape, tcell.KeyCtrlC:
-			a.commands <- dux.Quit{}
+			app.commands <- dux.Quit{}
 			return true
 		case tcell.KeyCtrlL:
-			a.commands <- dux.Refresh{}
+			app.commands <- dux.Refresh{}
 			return true
 		}
 	case *tcell.EventResize:
 		w, h := ev.Size()
-		a.width = w
-		a.height = h
-		a.Resize()
+		app.width = w
+		app.height = h
+		app.Resize()
 		return true
 	}
-	return a.widget.HandleEvent(ev)
+	return app.widget.HandleEvent(ev)
 }
 
-func (a *App) Run() error {
-	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
-
-	err := a.init()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		a.screen.Fini()
-	}()
-
-	a.widget.SetView(a.view)
-	fileEvents := make(chan files.FileEvent)
-	treemapEvents := make(chan dux.StateUpdate)
-	commands := make(chan dux.Command)
-
-	a.fileEvents = fileEvents
-	a.treemapEvents = treemapEvents
-	a.commands = commands
-
-	go signalHandler(commands)
-	go files.WalkDir(a.path, fileEvents, os.ReadDir)
-
-	initState := dux.State{
-		MaxDepth:       2,
-		IsWalkingFiles: true,
-	}
-
-	pres := dux.NewPresenter(
-		fileEvents,
-		commands,
-		treemapEvents,
-		initState,
-		dux.WithPadding(dux.SliceAndDice{}, 1.0),
-	)
-	go pres.Loop()
-
-	a.startEventLoop()
-	a.startDrawLoop()
-	a.wg.Wait()
-	return err
+func (app *App) SetState(state dux.State) {
+	app.titleBar.SetState(state)
+	app.treemapView.SetState(state)
 }
+
+func (app *App) Draw() {
+	app.widget.Draw()
+	app.screen.Show()
+}
+
 func (app *App) Refresh() {
 	app.screen.Sync()
 }
 
-func (a *App) Resize() {
-	a.view.Resize(0, 0, a.width, a.height)
-	a.widget.Resize()
+func (app *App) Resize() {
+	app.view.Resize(0, 0, app.width, app.height)
+	app.widget.Resize()
 	titlebarHeight := 1
-	a.commands <- dux.Resize{
-		Width:  a.width,
-		Height: a.height - titlebarHeight,
+	app.commands <- dux.Resize{
+		Width:  app.width,
+		Height: app.height - titlebarHeight,
 	}
-	a.Refresh()
-	a.PostEventWidgetResize(a)
+	app.Refresh()
 }
 
 func (app *App) Suspend() {
-	if app.screen != nil {
-		app.clearAlternateScreen()
-		app.screen.Suspend()
-	}
+	app.clearAlternateScreen()
+	app.screen.Suspend()
 }
 
 func (app *App) Resume() {
-	if app.screen != nil {
-		app.screen.Resume()
-	}
+	app.screen.Resume()
 }
 
-func (a *App) SetView(view views.View) {
-	a.view = view
-	if a.widget != nil {
-		a.widget.SetView(view)
-	}
+func (app *App) SetView(view views.View) {
+	app.view = view
+	app.widget.SetView(view)
 }
 
-func (a *App) Size() (int, int) {
-	return a.widget.Size()
+func (app *App) Size() (int, int) {
+	return app.widget.Size()
 }
 
 // Draw loop
@@ -181,7 +160,8 @@ loop:
 				app.terminateEventLoop()
 				break loop
 			}
-			app.SetState(event)
+			app.printErrors(event.Errors)
+			app.SetState(event.State)
 			if event.State.Refresh != nil {
 				event.State.Refresh.Do(app.Refresh)
 			}
@@ -235,22 +215,20 @@ func (app *App) terminateEventLoop() {
 
 // initialize initializes the application.  It will normally attempt to
 // allocate a default screen if one is not already established.
-func (a *App) init() error {
+func (app *App) init() error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		a.err = err
 		return err
 	}
 
 	err = screen.Init()
 	if err != nil {
-		a.err = err
 		return err
 	}
 
 	screen.Clear()
-	a.screen = screen
-	a.SetView(screen)
+	app.screen = screen
+	app.SetView(screen)
 	return nil
 }
 
@@ -261,14 +239,10 @@ func (a *App) init() error {
 // buffer.
 //
 // For more info, see:
-//
 // - https://stackoverflow.com/questions/39188508/how-curses-preserves-screen-contents
-//
 // - https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
-//
 // - https://invisible-island.net/xterm/xterm.faq.html#xterm_tite
-func (a *App) printErrors() {
-	errs := a.errors
+func (app *App) printErrors(errs []error) {
 	if len(errs) == 0 {
 		return
 	}
@@ -284,9 +258,9 @@ func (a *App) printErrors() {
 	}
 	lines := strings.Join(msgs, "\n")
 
-	a.Suspend()
+	app.Suspend()
 	fmt.Fprintln(os.Stderr, lines)
-	a.Resume()
+	app.Resume()
 }
 
 func (app *App) clearAlternateScreen() {
@@ -299,12 +273,19 @@ func NewApp(path string) *App {
 	title := NewTitleBar()
 	main := NewMainPanel(title, tv)
 
+	fileEvents := make(chan files.FileEvent)
+	treemapEvents := make(chan dux.StateUpdate)
+	commands := make(chan dux.Command)
+
 	app := &App{
-		path:        path,
-		main:        main,
-		widget:      main,
-		titleBar:    title,
-		treemapView: tv,
+		path:          path,
+		main:          main,
+		widget:        main,
+		titleBar:      title,
+		treemapView:   tv,
+		fileEvents:    fileEvents,
+		treemapEvents: treemapEvents,
+		commands:      commands,
 	}
 
 	return app

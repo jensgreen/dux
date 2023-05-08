@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -24,70 +23,32 @@ func (tv *TreemapView) SetState(state dux.State) {
 	tv.state = state
 }
 
-// Draw is called to inform the widget to draw itself.  A containing
-// Widget will generally call this during the application draw loop.
 func (tv *TreemapView) Draw() {
-	log.Printf("tv size   w=%v, h=%v", tv.width, tv.height)
-	vw, vh := tv.view.Size()
-	log.Printf("view size w=%v h=%v", vw, vh)
-	// for i := 0; i < tv.height; i++ {
-	// 	tv.view.SetContent(i%4, i, 'X', nil, tcell.StyleDefault)
-	// }
 	tv.view.Clear()
 	tv.drawTreemapPane(tv.state)
 }
 
-// Resize is called in response to a resize of the View.  Unlike with
-// other events, Resize performed by parents first, and they must
-// then call their children.  This is because the children need to
-// see the updated sizes from the parents before they are called.
-// In general this is done *after* the views have updated.
 func (tv *TreemapView) Resize() {
 	w, h := tv.view.Size()
-	log.Printf("Resize() from %v,%v to %v,%v", tv.width, tv.height, w, h)
 	tv.width = w
 	tv.height = h
 	tv.PostEventWidgetResize(tv)
 }
 
-// HandleEvent is called to ask the widget to handle any events.
-// If the widget has consumed the event, it should return true.
-// Generally, events are handled by the lower layers first, that
-// is for example, a button may have a chance to handle an event
-// before the enclosing window or panel.
-//
-// Its expected that Resize events are consumed by the outermost
-// Widget, and the turned into a Resize() call.
 func (tv *TreemapView) HandleEvent(ev tcell.Event) bool {
-	// log.Printf("TreemapView event: %T", ev)
-	// switch x := ev.(type) {
-	// case *views.EventWidgetResize:
-	// 	log.Printf("event resize: %T %+v", x, x.Widget())
-	// case *tcell.EventMouse:
-	// 	log.Printf("event mouse: %+v", x)
-	// }
 	return false
 }
 
-// SetView is used by callers to set the visual context of the
-// Widget.  The Widget should use the View as a context for
-// drawing.
 func (tv *TreemapView) SetView(view views.View) {
 	tv.view = view
 }
 
-// Size returns the size of the widget (content size) as width, height
-// in columns.  Layout managers should attempt to ensure that at least
-// this much space is made available to the View for this Widget.  Extra
-// space may be allocated on as an needed basis.
 func (tv *TreemapView) Size() (int, int) {
 	return tv.width, tv.height
 }
 
 func (tv *TreemapView) Update(state dux.State) {
-	log.Printf("Updating state %+v", state)
 	tv.state = state
-	log.Printf("Posted PostEventWidgetContent event")
 	tv.Draw()
 	tv.PostEventWidgetContent(tv)
 }
@@ -140,7 +101,7 @@ func (tv *TreemapView) drawTreemapPane(state dux.State) {
 func (tv *TreemapView) drawTreemap(state dux.State, tm intTreemap, isRoot bool) {
 	f := tm.File
 	rect := tv.closeHalfOpen(tm.Rect)
-	log.Printf("Drawing %s at %v (rect: %+v)", f.Path, rect, tm.Rect)
+	// log.Printf("Drawing %s at %v (rect: %+v)", f.Path, rect, tm.Rect)
 	tv.drawBox(rect)
 	tv.drawLabel(rect, f, isRoot)
 

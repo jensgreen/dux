@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"log"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -18,8 +17,7 @@ type Application2 struct {
 	wg          sync.WaitGroup
 	stateSetter func(dux.StateUpdate)
 
-	stateChan   <-chan dux.StateUpdate
-	commandChan chan<- dux.Command
+	stateChan <-chan dux.StateUpdate
 }
 
 func (app *Application2) Draw() {
@@ -51,37 +49,6 @@ func (app *Application2) terminateEventLoop() {
 	}
 }
 
-// // Refresh causes the application forcibly redraw everything.  Use this
-// // to clear up screen corruption, etc.
-// func (app *Application2) Refresh() {
-// 	ev := &eventAppRefresh{}
-// 	ev.SetEventNow()
-// 	if scr := app.screen; scr != nil {
-// 		go func() { scr.PostEventWait(ev) }()
-// 	}
-// }
-
-// // Update asks the application to draw any screen updates that have not
-// // been drawn yet.
-// func (app *Application2) Update() {
-// 	ev := &eventAppUpdate{}
-// 	ev.SetEventNow()
-// 	if scr := app.screen; scr != nil {
-// 		go func() { scr.PostEventWait(ev) }()
-// 	}
-// }
-
-// // PostFunc posts a function to be executed in the context of the
-// // application's event loop.  Functions that need to update displayed
-// // state, etc. can do this to avoid holding locks.
-// func (app *Application2) PostFunc(fn func()) {
-// 	ev := &eventAppFunc{fn: fn}
-// 	ev.SetEventNow()
-// 	if scr := app.screen; scr != nil {
-// 		go func() { scr.PostEventWait(ev) }()
-// 	}
-// }
-
 // SetScreen sets the screen to use for the application.  This must be
 // done before the application starts to run or is initialized.
 func (app *Application2) SetScreen(scr tcell.Screen) {
@@ -108,10 +75,6 @@ func (app *Application2) SetStateChan(ch <-chan dux.StateUpdate) {
 	app.stateChan = ch
 }
 
-func (app *Application2) SetCommandChan(ch chan<- dux.Command) {
-	app.commandChan = ch
-}
-
 func (app *Application2) SetStateSetter(cb func(dux.StateUpdate)) {
 	app.stateSetter = cb
 }
@@ -119,12 +82,8 @@ func (app *Application2) SetStateSetter(cb func(dux.StateUpdate)) {
 // Draw loop
 func (app *Application2) drawLoop() {
 	defer app.wg.Done()
-
-	i := 0
 loop:
 	for {
-		log.Printf("draw loop: %d", i)
-		i++
 		event, ok := <-app.stateChan
 		if ok {
 			if event.State.Quit {
@@ -146,21 +105,15 @@ loop:
 			app.stateChan = nil
 		}
 	}
-	log.Printf("Leaving draw loop")
 }
 
 // Event loop
 func (app *Application2) eventLoop() {
 	defer app.wg.Done()
-
 	screen := app.screen
-	widget := app.widget
-
-	i := 0
 loop:
 	for {
-		log.Printf("event loop: %d", i)
-		i++
+		var widget views.Widget
 		if widget = app.widget; widget == nil {
 			break
 		}
@@ -169,19 +122,10 @@ loop:
 		switch ev.(type) {
 		case *eventAppQuit:
 			break loop
-		// case *eventAppUpdate:
-		// 	panic("update event")
-		// 	// screen.Show()
-		// case *eventAppRefresh:
-		// 	panic("refresh event")
-		// 	// screen.Sync()
-		// case *eventAppFunc:
-		// 	nev.fn()
 		default:
 			widget.HandleEvent(ev)
 		}
 	}
-	log.Printf("Leaving event loop")
 }
 
 func (app *Application2) startEventLoop() {
@@ -216,9 +160,7 @@ func (app *Application2) Run() error {
 
 	app.startEventLoop()
 	app.startDrawLoop()
-	log.Printf("Application loops started")
 	app.wg.Wait()
-	log.Printf("Loops done, returning")
 	return app.err
 }
 
@@ -231,27 +173,13 @@ func (app *Application2) clearAlternateScreen() {
 	app.screen.Show()
 }
 
-func NewApplication2(stateChan <-chan dux.StateUpdate, commandChan chan<- dux.Command) *Application2 {
+func NewApplication2(stateChan <-chan dux.StateUpdate) *Application2 {
 	app := &Application2{}
 	app.SetStateChan(stateChan)
-	app.SetCommandChan(commandChan)
 
 	return app
 }
 
-// type eventAppUpdate struct {
-// 	tcell.EventTime
-// }
-
 type eventAppQuit struct {
 	tcell.EventTime
 }
-
-// type eventAppRefresh struct {
-// 	tcell.EventTime
-// }
-
-// type eventAppFunc struct {
-// 	tcell.EventTime
-// 	fn func()
-// }

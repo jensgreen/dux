@@ -6,15 +6,12 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/logging"
 )
 
 type App struct {
@@ -99,7 +96,7 @@ func (a *App) Run() error {
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 
 	a.app.SetRootWidget(a)
-	a.show(a.panel)
+	a.panel.SetView(a.view)
 	fileEvents := make(chan files.FileEvent)
 	treemapEvents := make(chan dux.StateUpdate)
 	commands := make(chan dux.Command)
@@ -107,7 +104,6 @@ func (a *App) Run() error {
 	a.fileEvents = fileEvents
 	a.treemapEvents = treemapEvents
 	a.commands = commands
-	a.app.SetCommandChan(a.commands)
 	a.app.SetStateChan(a.treemapEvents)
 	a.app.SetStateSetter(a.SetState)
 
@@ -141,17 +137,6 @@ func (a *App) SetView(view views.View) {
 
 func (a *App) Size() (int, int) {
 	return a.panel.Size()
-}
-
-func (a *App) show(w views.Widget) {
-	if w != a.panel {
-		a.panel.SetView(nil)
-		a.panel = w
-	}
-
-	a.panel.SetView(a.view)
-	// a.Resize()
-	// a.app.Refresh()
 }
 
 // printErrors prints error messages to stderr in the Normal Screen Buffer. The
@@ -204,63 +189,4 @@ func NewApp(path string) *App {
 	}
 
 	return app
-}
-
-func run() error {
-	path, debug := ArgsOrExit()
-	logging.Setup(debug)
-	disableTruecolor()
-	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
-	s, err := tcell.NewScreen()
-	if err != nil {
-		return err
-	}
-	err = s.Init()
-	if err != nil {
-		return err
-	}
-	defer s.Fini()
-	s.Clear()
-
-	fileEvents := make(chan files.FileEvent)
-	treemapEvents := make(chan dux.StateUpdate)
-	commands := make(chan dux.Command)
-
-	go signalHandler(commands)
-	go files.WalkDir(path, fileEvents, os.ReadDir)
-
-	initState := dux.State{
-		MaxDepth:       2,
-		IsWalkingFiles: true,
-	}
-
-	pres := dux.NewPresenter(
-		fileEvents,
-		commands,
-		treemapEvents,
-		initState,
-		dux.WithPadding(dux.SliceAndDice{}, 1.0),
-	)
-	go pres.Loop()
-
-	tui := dux.NewTerminalView(s, treemapEvents, commands)
-	go tui.UserInputLoop()
-	tui.MainLoop()
-	return nil
-}
-
-func signalHandler(commands chan<- dux.Command) {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-signals
-	log.Printf("Got signal %s", sig.String())
-	switch sig {
-	case syscall.SIGINT, syscall.SIGTERM:
-		commands <- dux.Quit{}
-	}
-}
-
-// disableTruecolor makes us follow the terminal color scheme by disabling tcell's truecolor support
-func disableTruecolor() error {
-	return os.Setenv("TCELL_TRUECOLOR", "disable")
 }

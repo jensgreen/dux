@@ -79,7 +79,7 @@ func (p *Presenter) bubbleUp(f files.File) {
 		if !ok || path == parentPath {
 			return
 		}
-		log.Printf("Bubbling up %v to %v", f, parent.File)
+		// log.Printf("Bubbling up %v to %v", f, parent.File)
 		parent.File.Size += f.Size
 		path = parentPath
 	}

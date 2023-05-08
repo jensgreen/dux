@@ -54,7 +54,7 @@ func (cmd Resize) Execute(state State) State {
 }
 
 func (cmd Resize) calcAreas(screenWidth int, screenHeight int) r2.Rect {
-	return  r2.Rect{
+	return r2.Rect{
 		X: r1.Interval{Lo: 0, Hi: float64(screenWidth)},
 		Y: r1.Interval{Lo: 0, Hi: float64(screenHeight)},
 	}

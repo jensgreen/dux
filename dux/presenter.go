@@ -8,29 +8,29 @@ import (
 )
 
 type Presenter struct {
-	FileEvents   <-chan files.FileEvent
-	Commands     <-chan Command
-	StateUpdates chan<- StateUpdate
-	Tiler        Tiler
-	state        State
-	root         *files.FileTree
-	pathLookup   map[string]*files.FileTree
+	FileEvents  <-chan files.FileEvent
+	Commands    <-chan Command
+	stateEvents chan<- StateEvent
+	Tiler       Tiler
+	state       State
+	root        *files.FileTree
+	pathLookup  map[string]*files.FileTree
 }
 
 func NewPresenter(
 	fileEvents <-chan files.FileEvent,
 	commands <-chan Command,
-	treemapEvents chan<- StateUpdate,
+	stateEvents chan<- StateEvent,
 	initialState State,
 	tiler Tiler,
 ) Presenter {
 	return Presenter{
-		FileEvents:   fileEvents,
-		Commands:     commands,
-		StateUpdates: treemapEvents,
-		state:        initialState,
-		Tiler:        tiler,
-		pathLookup:   make(map[string]*files.FileTree),
+		FileEvents:  fileEvents,
+		Commands:    commands,
+		stateEvents: stateEvents,
+		state:       initialState,
+		Tiler:       tiler,
+		pathLookup:  make(map[string]*files.FileTree),
 	}
 }
 
@@ -99,11 +99,11 @@ func (p *Presenter) tick() {
 		rootTreemap := TreemapWithTiler(*p.root, p.state.TreemapRect, p.Tiler, p.state.MaxDepth, 0)
 		p.state.Treemap = rootTreemap
 	}
-	log.Printf("Sending StateUpdate")
-	p.StateUpdates <- StateUpdate{State: p.state, Errors: errs}
-	log.Printf("Sent StateUpdate")
+	log.Printf("Sending stateEvent")
+	p.stateEvents <- StateEvent{State: p.state, Errors: errs}
+	log.Printf("Sent stateEvent")
 	if p.state.Quit {
-		close(p.StateUpdates)
+		close(p.stateEvents)
 	}
 }
 

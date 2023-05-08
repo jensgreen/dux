@@ -16,7 +16,7 @@ type State struct {
 	Refresh        *sync.Once
 }
 
-type StateUpdate struct {
+type StateEvent struct {
 	State  State
 	Errors []error
 }

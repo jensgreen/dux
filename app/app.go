@@ -29,9 +29,9 @@ type App struct {
 	widget views.Widget
 	wg     sync.WaitGroup
 
-	fileEvents    chan files.FileEvent
-	treemapEvents chan dux.StateUpdate
-	commands      chan dux.Command
+	fileEvents  chan files.FileEvent
+	stateEvents chan dux.StateEvent
+	commands    chan dux.Command
 }
 
 func (app *App) Run() error {
@@ -56,7 +56,7 @@ func (app *App) Run() error {
 	pres := dux.NewPresenter(
 		app.fileEvents,
 		app.commands,
-		app.treemapEvents,
+		app.stateEvents,
 		initState,
 		dux.WithPadding(dux.SliceAndDice{}, 1.0),
 	)
@@ -151,7 +151,7 @@ func (app *App) drawLoop() {
 	defer app.wg.Done()
 loop:
 	for {
-		event, ok := <-app.treemapEvents
+		event, ok := <-app.stateEvents
 		if ok {
 			if event.State.Quit {
 				// TODO we actually the last (and only the last) alternate screen
@@ -169,7 +169,7 @@ loop:
 		} else {
 			// Channel is closed. Set to nil channel, which is never selected.
 			// This will keep the app on-screen, waiting for user's quit signal.
-			app.treemapEvents = nil
+			app.stateEvents = nil
 		}
 	}
 }
@@ -274,18 +274,18 @@ func NewApp(path string) *App {
 	main := NewMainPanel(title, tv)
 
 	fileEvents := make(chan files.FileEvent)
-	treemapEvents := make(chan dux.StateUpdate)
+	stateEvents := make(chan dux.StateEvent)
 	commands := make(chan dux.Command)
 
 	app := &App{
-		path:          path,
-		main:          main,
-		widget:        main,
-		titleBar:      title,
-		treemapView:   tv,
-		fileEvents:    fileEvents,
-		treemapEvents: treemapEvents,
-		commands:      commands,
+		path:        path,
+		main:        main,
+		widget:      main,
+		titleBar:    title,
+		treemapView: tv,
+		fileEvents:  fileEvents,
+		stateEvents: stateEvents,
+		commands:    commands,
 	}
 
 	return app

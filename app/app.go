@@ -1,9 +1,13 @@
 package app
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gdamore/tcell/v2"
@@ -26,16 +30,19 @@ type App struct {
 	fileEvents    chan files.FileEvent
 	treemapEvents chan dux.StateUpdate
 	commands      chan dux.Command
+	errors        []error
 
 	views.WidgetWatchers
 }
 
-func (a *App) SetState(state dux.State) {
-	a.titleBar.SetState(state)
-	a.treemapView.SetState(state)
+func (a *App) SetState(ev dux.StateUpdate) {
+	a.errors = ev.Errors
+	a.titleBar.SetState(ev.State)
+	a.treemapView.SetState(ev.State)
 }
 
 func (a *App) Draw() {
+	a.printErrors()
 	a.panel.Draw()
 }
 
@@ -139,6 +146,41 @@ func (a *App) show(w views.Widget) {
 	a.panel.SetView(a.view)
 	// a.Resize()
 	// a.app.Refresh()
+}
+
+// printErrors prints error messages to stderr in the Normal Screen Buffer. The
+// error messages will be visible when the application is closed or
+// backgrounded, as well as during a brief flicker which occurs when the
+// Alternate Screen Buffer is disabled to allow writing to the normal screen
+// buffer.
+//
+// For more info, see:
+//
+// - https://stackoverflow.com/questions/39188508/how-curses-preserves-screen-contents
+//
+// - https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+//
+// - https://invisible-island.net/xterm/xterm.faq.html#xterm_tite
+func (a *App) printErrors() {
+	errs := a.errors
+	if len(errs) == 0 {
+		return
+	}
+
+	var msgs []string = make([]string, len(errs))
+	for i, err := range errs {
+		var perr *fs.PathError
+		if errors.As(err, &perr) {
+			msgs[i] = fmt.Sprintf("cannot access '%s': %v", perr.Path, perr.Err)
+		} else {
+			msgs[i] = err.Error()
+		}
+	}
+	lines := strings.Join(msgs, "\n")
+
+	a.app.Suspend()
+	fmt.Fprintln(os.Stderr, lines)
+	a.app.Resume()
 }
 
 func NewApp(path string) *App {

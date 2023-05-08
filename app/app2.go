@@ -16,7 +16,7 @@ type Application2 struct {
 	screen      tcell.Screen
 	err         error
 	wg          sync.WaitGroup
-	stateSetter func(dux.State)
+	stateSetter func(dux.StateUpdate)
 
 	stateChan   <-chan dux.StateUpdate
 	commandChan chan<- dux.Command
@@ -91,6 +91,19 @@ func (app *Application2) SetScreen(scr tcell.Screen) {
 	}
 }
 
+func (app *Application2) Suspend() {
+	if app.screen != nil {
+		app.clearAlternateScreen()
+		app.screen.Suspend()
+	}
+}
+
+func (app *Application2) Resume() {
+	if app.screen != nil {
+		app.screen.Resume()
+	}
+}
+
 func (app *Application2) SetStateChan(ch <-chan dux.StateUpdate) {
 	app.stateChan = ch
 }
@@ -99,7 +112,7 @@ func (app *Application2) SetCommandChan(ch chan<- dux.Command) {
 	app.commandChan = ch
 }
 
-func (app *Application2) SetStateSetter(cb func(dux.State)) {
+func (app *Application2) SetStateSetter(cb func(dux.StateUpdate)) {
 	app.stateSetter = cb
 }
 
@@ -122,8 +135,7 @@ loop:
 				break loop
 			}
 			// tv.spinner.Tick()
-			// tv.printErrors(event.Errors)
-			app.stateSetter(event.State)
+			app.stateSetter(event)
 			if event.State.Refresh != nil {
 				event.State.Refresh.Do(app.refresh)
 			}
@@ -191,7 +203,7 @@ func (app *Application2) Run() error {
 	widget := app.widget
 
 	if widget == nil {
-		return errors.New("Root widget not set")
+		return errors.New("root widget not set")
 	}
 	if screen == nil {
 		if e := app.initialize(); e != nil {

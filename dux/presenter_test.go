@@ -18,22 +18,22 @@ func (t mockTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles
 	return make([]Tile, len(fileTree.Children)), r2.EmptyRect()
 }
 
-func Test_TickProducesStateUpdateEvent(t *testing.T) {
+func Test_TickProducesstateEventEvent(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 1)
-	stateUpdates := make(chan StateUpdate, 1)
+	stateEvents := make(chan StateEvent, 1)
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 	close(fileEvents)
 
-	pres := NewPresenter(fileEvents, nil, stateUpdates, State{}, nil)
+	pres := NewPresenter(fileEvents, nil, stateEvents, State{}, nil)
 	pres.tick()
 
-	stateUpdate, ok := <-stateUpdates
+	stateEvent, ok := <-stateEvents
 	if !ok {
-		t.Errorf("expected StateUpdate")
+		t.Errorf("expected stateEvent")
 	}
-	gotPath := stateUpdate.State.Treemap.File.Path
+	gotPath := stateEvent.State.Treemap.File.Path
 	if "foo" != gotPath {
-		t.Errorf("expected StateUpdate for %v, got %v", "foo", gotPath)
+		t.Errorf("expected stateEvent for %v, got %v", "foo", gotPath)
 	}
 }
 
@@ -45,11 +45,11 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 		commands <- Quit{}
 	}()
 
-	stateUpdates := make(chan StateUpdate)
-	pres := NewPresenter(fileEvents, commands, stateUpdates, State{}, mockTiler{})
+	stateEvents := make(chan StateEvent)
+	pres := NewPresenter(fileEvents, commands, stateEvents, State{}, mockTiler{})
 	go pres.Loop()
 
-	for e := range stateUpdates {
+	for e := range stateEvents {
 		f := e.State.Treemap.File
 		if !strings.Contains(f.Path, "../testdata/example/inner") {
 			t.Fail()
@@ -61,9 +61,9 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 	}
 }
 
-func Test_EmitsStateUpdateForRootOnEachFileEvent(t *testing.T) {
+func Test_EmitsstateEventForRootOnEachFileEvent(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 2)
-	stateUpdates := make(chan StateUpdate, 4)
+	stateEvents := make(chan StateEvent, 4)
 	commands := make(chan Command, 1)
 
 	parent := files.File{Path: "foo"}
@@ -72,44 +72,44 @@ func Test_EmitsStateUpdateForRootOnEachFileEvent(t *testing.T) {
 	fileEvents <- files.FileEvent{File: child}
 	close(fileEvents)
 
-	pres := NewPresenter(fileEvents, commands, stateUpdates, State{}, mockTiler{})
+	pres := NewPresenter(fileEvents, commands, stateEvents, State{}, mockTiler{})
 	pres.tick() // foo
 	pres.tick() // foo/bar
 	pres.tick() // closed
 	commands <- Quit{}
 	pres.tick() // Quit
 
-	for event := range stateUpdates {
+	for event := range stateEvents {
 		path := event.State.Treemap.File.Path
 		if path != "foo" {
-			t.Errorf("expected StateUpdate for root %v, got %v", "foo", path)
+			t.Errorf("expected stateEvent for root %v, got %v", "foo", path)
 		}
 	}
 }
 
-func Test_EmitsStateUpdateOnFileEvent(t *testing.T) {
+func Test_EmitsstateEventOnFileEvent(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 1)
-	stateUpdates := make(chan StateUpdate, 1)
+	stateEvents := make(chan StateEvent, 1)
 
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 
-	pres := NewPresenter(fileEvents, nil, stateUpdates, State{}, mockTiler{})
+	pres := NewPresenter(fileEvents, nil, stateEvents, State{}, mockTiler{})
 	pres.tick()
-	if _, ok := <-stateUpdates; !ok {
+	if _, ok := <-stateEvents; !ok {
 		t.Fail()
 	}
 }
 
 func Test_QuitCommandUpdatesQuitState(t *testing.T) {
-	stateUpdates := make(chan StateUpdate, 1)
+	stateEvents := make(chan StateEvent, 1)
 	commands := make(chan Command, 1)
-	pres := NewPresenter(nil, commands, stateUpdates, State{}, mockTiler{})
+	pres := NewPresenter(nil, commands, stateEvents, State{}, mockTiler{})
 	commands <- Quit{}
 	pres.tick()
 
-	update, ok := <-stateUpdates
+	update, ok := <-stateEvents
 	if !ok {
-		t.Errorf("No StateUpdate sent")
+		t.Errorf("No stateEvent sent")
 	}
 	if update.State.Quit != true {
 		t.Errorf("Quit flag not set")

@@ -18,7 +18,9 @@ import (
 )
 
 type App struct {
-	path string
+	path   string
+	width  int
+	height int
 
 	app         *Application2
 	main        *MainPanel
@@ -72,20 +74,24 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 	case *tcell.EventResize:
-		// views.Application.run() handles EventResize by delegating it to our Resize() method,
-		// so no need to handle it here.
-		panic("Unexpected EventResize")
+		w, h := ev.Size()
+		a.width = w
+		a.height = h
+		a.Resize()
+		return true
 	}
-
 	return a.panel.HandleEvent(ev)
 }
 
 func (a *App) Resize() {
+	a.view.Resize(0, 0, a.width, a.height)
 	a.panel.Resize()
+	titlebarHeight := 1
 	a.commands <- dux.Resize{
-		Width:  a.treemapView.width,
-		Height: a.treemapView.height,
+		Width:  a.width,
+		Height: a.height - titlebarHeight,
 	}
+	a.app.Refresh()
 	a.PostEventWidgetResize(a)
 }
 

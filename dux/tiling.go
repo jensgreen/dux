@@ -1,8 +1,6 @@
 package dux
 
 import (
-	"log"
-
 	"github.com/golang/geo/r1"
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
@@ -46,7 +44,6 @@ func (VerticalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (til
 		if dx < MINIMUM_WIDTH {
 			// Don't show this tile, it's too small.
 			// Grow spillage from the right.
-			log.Printf("Spilling over %s", f.File.Path)
 			spillage.X.Lo -= candidate.X.Length()
 		} else {
 			tiles = append(tiles, Tile{File: f, Rect: candidate})
@@ -74,7 +71,6 @@ func (HorizontalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (t
 		if dy < MINIMUM_HEIGHT {
 			// Don't show this tile, it's too small.
 			// grow spillage from the bottom.
-			log.Printf("Spilling over %s", f.File.Path)
 			spillage.Y.Lo -= candidate.Y.Length()
 		} else {
 			tiles = append(tiles, Tile{File: f, Rect: candidate})

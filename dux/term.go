@@ -86,11 +86,11 @@ func (tv *TerminalView) UserInputLoop() {
 				case tcell.KeyCtrlL:
 					s.Sync()
 				}
-			case *tcell.EventResize:
-				// An EventRize will be sent on tcell.Screen.Init(), so there is no
-				// need to set an initial size.
-				w, h := ev.Size()
-				tv.commands <- Resize{Width: w, Height: h}
+			// case *tcell.EventResize:
+			// 	// An EventRize will be sent on tcell.Screen.Init(), so there is no
+			// 	// need to set an initial size.
+			// 	w, h := ev.Size()
+			// 	tv.commands <- Resize{Width: w, Height: h}
 			}
 		}
 	}

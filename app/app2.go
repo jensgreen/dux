@@ -24,6 +24,7 @@ type Application2 struct {
 
 func (app *Application2) Draw() {
 	app.widget.Draw()
+	app.screen.Show()
 }
 
 // SetRootWidget sets the primary (root, main) Widget to be displayed.
@@ -123,7 +124,9 @@ loop:
 			// tv.spinner.Tick()
 			// tv.printErrors(event.Errors)
 			app.stateSetter(event.State)
-			event.State.Refresh.Do(app.refresh)
+			if event.State.Refresh != nil {
+				event.State.Refresh.Do(app.refresh)
+			}
 			app.Draw()
 		} else {
 			// Channel is closed. Set to nil channel, which is never selected.

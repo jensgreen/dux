@@ -22,7 +22,7 @@ func (Quit) Execute(state State) State {
 type Refresh struct{}
 
 func (Refresh) Execute(state State) State {
-	state.Refresh = sync.Once{}
+	state.Refresh = &sync.Once{}
 	return state
 }
 

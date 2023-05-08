@@ -3,26 +3,9 @@ package dux
 import (
 	"log"
 	"path/filepath"
-	"sync"
 
-	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
 )
-
-type State struct {
-	Treemap        Treemap
-	Quit           bool
-	MaxDepth       int
-	TreemapRect    r2.Rect
-	TotalFiles     int
-	IsWalkingFiles bool
-	Refresh        *sync.Once
-}
-
-type StateUpdate struct {
-	State  State
-	Errors []error
-}
 
 type Presenter struct {
 	FileEvents   <-chan files.FileEvent

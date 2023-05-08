@@ -18,7 +18,7 @@ type TerminalView struct {
 	commands     chan<- Command
 	screen       tcell.Screen
 	quit         chan struct{}
-	spinner      *spinner
+	// spinner      *spinner
 }
 
 func NewTerminalView(screen tcell.Screen, events <-chan StateUpdate, commands chan<- Command) TerminalView {
@@ -27,7 +27,7 @@ func NewTerminalView(screen tcell.Screen, events <-chan StateUpdate, commands ch
 		stateUpdates: events,
 		commands:     commands,
 		quit:         make(chan struct{}),
-		spinner:      newSpinner(),
+		// spinner:      newSpinner(),
 	}
 }
 
@@ -46,7 +46,7 @@ func (tv *TerminalView) poll() bool {
 			tv.clearAlternateScreen()
 			return false
 		}
-		tv.spinner.Tick()
+		// tv.spinner.Tick()
 		tv.printErrors(event.Errors)
 		tv.update(event.State)
 	} else {

@@ -20,9 +20,9 @@ type App struct {
 	width  int
 	height int
 
-	main        *MainPanel
-	titleBar    *TitleBar
-	treemapView *TreemapView
+	main     *MainPanel
+	titleBar *TitleBar
+	treemap  *TreemapWidget
 
 	screen tcell.Screen
 	view   views.View
@@ -105,7 +105,7 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 
 func (app *App) SetState(state dux.State) {
 	app.titleBar.SetState(state)
-	app.treemapView.SetState(state)
+	app.treemap.SetState(state)
 }
 
 func (app *App) Draw() {
@@ -269,7 +269,7 @@ func (app *App) clearAlternateScreen() {
 }
 
 func NewApp(path string) *App {
-	tv := NewTreemapView()
+	tv := NewTreemapWidget()
 	title := NewTitleBar()
 	main := NewMainPanel(title, tv)
 
@@ -282,7 +282,7 @@ func NewApp(path string) *App {
 		main:        main,
 		widget:      main,
 		titleBar:    title,
-		treemapView: tv,
+		treemap:     tv,
 		fileEvents:  fileEvents,
 		stateEvents: stateEvents,
 		commands:    commands,

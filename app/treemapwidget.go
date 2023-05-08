@@ -10,7 +10,7 @@ import (
 	"github.com/jensgreen/dux/z2"
 )
 
-type TreemapView struct {
+type TreemapWidget struct {
 	width  int
 	height int
 	state  dux.State
@@ -19,41 +19,41 @@ type TreemapView struct {
 	views.WidgetWatchers
 }
 
-func (tv *TreemapView) SetState(state dux.State) {
+func (tv *TreemapWidget) SetState(state dux.State) {
 	tv.state = state
 }
 
-func (tv *TreemapView) Draw() {
+func (tv *TreemapWidget) Draw() {
 	tv.view.Clear()
 	tv.drawTreemapPane(tv.state)
 }
 
-func (tv *TreemapView) Resize() {
+func (tv *TreemapWidget) Resize() {
 	w, h := tv.view.Size()
 	tv.width = w
 	tv.height = h
 	tv.PostEventWidgetResize(tv)
 }
 
-func (tv *TreemapView) HandleEvent(ev tcell.Event) bool {
+func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (tv *TreemapView) SetView(view views.View) {
+func (tv *TreemapWidget) SetView(view views.View) {
 	tv.view = view
 }
 
-func (tv *TreemapView) Size() (int, int) {
+func (tv *TreemapWidget) Size() (int, int) {
 	return tv.width, tv.height
 }
 
-func (tv *TreemapView) Update(state dux.State) {
+func (tv *TreemapWidget) Update(state dux.State) {
 	tv.state = state
 	tv.Draw()
 	tv.PostEventWidgetContent(tv)
 }
 
-func (tv *TreemapView) closeHalfOpen(rect z2.Rect) z2.Rect {
+func (tv *TreemapWidget) closeHalfOpen(rect z2.Rect) z2.Rect {
 	// Hi is exclusive (half-open range)
 	if rect.X.Hi > rect.X.Lo {
 		rect.X.Hi--
@@ -64,7 +64,7 @@ func (tv *TreemapView) closeHalfOpen(rect z2.Rect) z2.Rect {
 	return rect
 }
 
-func (tv *TreemapView) drawBox(rect z2.Rect) {
+func (tv *TreemapWidget) drawBox(rect z2.Rect) {
 	lo := rect.Lo()
 	hi := rect.Hi()
 
@@ -92,13 +92,13 @@ func (tv *TreemapView) drawBox(rect z2.Rect) {
 	tv.view.SetContent(hi.X, lo.Y, tcell.RuneURCorner, nil, style)
 }
 
-func (tv *TreemapView) drawTreemapPane(state dux.State) {
+func (tv *TreemapWidget) drawTreemapPane(state dux.State) {
 	itm := snapRoundTreemap(state.Treemap)
 	isRoot := true
 	tv.drawTreemap(state, itm, isRoot)
 }
 
-func (tv *TreemapView) drawTreemap(state dux.State, tm intTreemap, isRoot bool) {
+func (tv *TreemapWidget) drawTreemap(state dux.State, tm intTreemap, isRoot bool) {
 	f := tm.File
 	rect := tv.closeHalfOpen(tm.Rect)
 	// log.Printf("Drawing %s at %v (rect: %+v)", f.Path, rect, tm.Rect)
@@ -110,7 +110,7 @@ func (tv *TreemapView) drawTreemap(state dux.State, tm intTreemap, isRoot bool) 
 	}
 }
 
-func (tv *TreemapView) drawLabel(rect z2.Rect, f files.File, isRoot bool) {
+func (tv *TreemapWidget) drawLabel(rect z2.Rect, f files.File, isRoot bool) {
 	xrangeLabel := z2.Interval{
 		Lo: rect.X.Lo + 1, // don't draw on left corner
 		Hi: rect.X.Hi,
@@ -149,7 +149,7 @@ func (tv *TreemapView) drawLabel(rect z2.Rect, f files.File, isRoot bool) {
 
 // drawString draws the provided string on row y and in cols given by the open interval xrange,
 // truncating the string if necessary
-func (tv *TreemapView) drawString(xrange z2.Interval, y int, s string, combc []rune, style tcell.Style) {
+func (tv *TreemapWidget) drawString(xrange z2.Interval, y int, s string, combc []rune, style tcell.Style) {
 	i := 0
 	for x := xrange.Lo; x < xrange.Hi; x++ {
 		if i == len(s) {
@@ -160,8 +160,8 @@ func (tv *TreemapView) drawString(xrange z2.Interval, y int, s string, combc []r
 	}
 }
 
-func NewTreemapView() *TreemapView {
-	tv := &TreemapView{}
+func NewTreemapWidget() *TreemapWidget {
+	tv := &TreemapWidget{}
 	return tv
 }
 

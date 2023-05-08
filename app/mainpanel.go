@@ -8,7 +8,7 @@ type MainPanel struct {
 	views.Panel
 }
 
-func NewMainPanel(title *TitleBar, tv *TreemapView) *MainPanel {
+func NewMainPanel(title *TitleBar, tv *TreemapWidget) *MainPanel {
 	m := &MainPanel{}
 	m.SetTitle(title)
 	m.SetContent(tv)

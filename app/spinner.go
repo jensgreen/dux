@@ -1,9 +1,7 @@
-package dux
+package app
 
 import "time"
 
-// TODO(jensgreen): package structure could be improved so that the sccope of
-// Spinner and _frames (among others) is smaller
 var _frames = [...]string{
 	"   ",
 	".  ",
@@ -14,23 +12,23 @@ var _frames = [...]string{
 	"   ",
 }
 
-type spinner struct {
+type Spinner struct {
 	frame      int
 	throttle   time.Duration
 	lastUpdate time.Time
 }
 
-func newSpinner() *spinner {
-	return &spinner{
+func NewSpinner() *Spinner {
+	return &Spinner{
 		throttle: 50 * time.Millisecond,
 	}
 }
 
-func (s *spinner) String() string {
+func (s *Spinner) String() string {
 	return _frames[s.frame]
 }
 
-func (s *spinner) Tick() {
+func (s *Spinner) Tick() {
 	now := time.Now()
 	if now.After(s.lastUpdate.Add(s.throttle)) {
 		s.frame = s.nextFrame()
@@ -38,6 +36,6 @@ func (s *spinner) Tick() {
 	}
 }
 
-func (s *spinner) nextFrame() int {
+func (s *Spinner) nextFrame() int {
 	return (s.frame + 1) % len(_frames)
 }

@@ -10,12 +10,14 @@ import (
 )
 
 type TitleBar struct {
-	textBar  *views.TextBar
-	path     string
-	size     int64
-	numFiles int
-	maxDepth int
-	style    tcell.Style
+	textBar        *views.TextBar
+	path           string
+	size           int64
+	numFiles       int
+	maxDepth       int
+	isWalkingFiles bool
+	style          tcell.Style
+	spinner        *Spinner
 
 	views.WidgetWatchers
 }
@@ -25,13 +27,19 @@ func (tb *TitleBar) SetState(state dux.State) {
 	tb.size = state.Treemap.File.Size
 	tb.numFiles = state.TotalFiles
 	tb.maxDepth = state.MaxDepth
+	tb.isWalkingFiles = state.IsWalkingFiles
+
+	tb.spinner.Tick()
 	tb.updateText()
-	// tb.PostEventWidgetContent(tb)
+	tb.PostEventWidgetContent(tb)
 }
 
 func (tb *TitleBar) updateText() {
 	width, _ := tb.Size()
 	s := fmt.Sprintf(" %s %s (%d files)", tb.path, files.HumanizeIEC(tb.size), tb.numFiles)
+	if tb.isWalkingFiles {
+		s = fmt.Sprintf("%s %s", s, tb.spinner.String())
+	}
 	s = fmt.Sprintf("%s (%d)", s, tb.maxDepth)
 	s = fmt.Sprintf("%-*v", width-1, s)
 
@@ -63,8 +71,11 @@ func NewTitleBar() *TitleBar {
 	text := views.NewTextBar()
 	text.SetStyle(style)
 
+	spinner := NewSpinner()
+
 	return &TitleBar{
 		textBar: text,
 		style:   style,
+		spinner: spinner,
 	}
 }

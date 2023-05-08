@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -19,12 +20,15 @@ type App struct {
 	width  int
 	height int
 
-	app         *Application2
 	main        *MainPanel
-	panel       views.Widget
 	titleBar    *TitleBar
 	treemapView *TreemapView
-	view        views.View
+
+	screen tcell.Screen
+	view   views.View
+	widget views.Widget
+	wg     sync.WaitGroup
+	err    error
 
 	fileEvents    chan files.FileEvent
 	treemapEvents chan dux.StateUpdate
@@ -42,7 +46,8 @@ func (a *App) SetState(ev dux.StateUpdate) {
 
 func (a *App) Draw() {
 	a.printErrors()
-	a.panel.Draw()
+	a.widget.Draw()
+	a.screen.Show()
 }
 
 func (a *App) HandleEvent(ev tcell.Event) bool {
@@ -77,26 +82,21 @@ func (a *App) HandleEvent(ev tcell.Event) bool {
 		a.Resize()
 		return true
 	}
-	return a.panel.HandleEvent(ev)
-}
-
-func (a *App) Resize() {
-	a.view.Resize(0, 0, a.width, a.height)
-	a.panel.Resize()
-	titlebarHeight := 1
-	a.commands <- dux.Resize{
-		Width:  a.width,
-		Height: a.height - titlebarHeight,
-	}
-	a.app.Refresh()
-	a.PostEventWidgetResize(a)
+	return a.widget.HandleEvent(ev)
 }
 
 func (a *App) Run() error {
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 
-	a.app.SetRootWidget(a)
-	a.panel.SetView(a.view)
+	err := a.init()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		a.screen.Fini()
+	}()
+
+	a.widget.SetView(a.view)
 	fileEvents := make(chan files.FileEvent)
 	treemapEvents := make(chan dux.StateUpdate)
 	commands := make(chan dux.Command)
@@ -104,8 +104,6 @@ func (a *App) Run() error {
 	a.fileEvents = fileEvents
 	a.treemapEvents = treemapEvents
 	a.commands = commands
-	a.app.SetStateChan(a.treemapEvents)
-	a.app.SetStateSetter(a.SetState)
 
 	go signalHandler(commands)
 	go files.WalkDir(a.path, fileEvents, os.ReadDir)
@@ -124,19 +122,136 @@ func (a *App) Run() error {
 	)
 	go pres.Loop()
 
-	err := a.app.Run()
+	a.startEventLoop()
+	a.startDrawLoop()
+	a.wg.Wait()
 	return err
+}
+func (app *App) Refresh() {
+	app.screen.Sync()
+}
+
+func (a *App) Resize() {
+	a.view.Resize(0, 0, a.width, a.height)
+	a.widget.Resize()
+	titlebarHeight := 1
+	a.commands <- dux.Resize{
+		Width:  a.width,
+		Height: a.height - titlebarHeight,
+	}
+	a.Refresh()
+	a.PostEventWidgetResize(a)
+}
+
+func (app *App) Suspend() {
+	if app.screen != nil {
+		app.clearAlternateScreen()
+		app.screen.Suspend()
+	}
+}
+
+func (app *App) Resume() {
+	if app.screen != nil {
+		app.screen.Resume()
+	}
 }
 
 func (a *App) SetView(view views.View) {
 	a.view = view
-	if a.panel != nil {
-		a.panel.SetView(view)
+	if a.widget != nil {
+		a.widget.SetView(view)
 	}
 }
 
 func (a *App) Size() (int, int) {
-	return a.panel.Size()
+	return a.widget.Size()
+}
+
+// Draw loop
+func (app *App) drawLoop() {
+	defer app.wg.Done()
+loop:
+	for {
+		event, ok := <-app.treemapEvents
+		if ok {
+			if event.State.Quit {
+				// TODO we actually the last (and only the last) alternate screen
+				// to end up in the scrollback buffer
+				app.clearAlternateScreen()
+				app.terminateEventLoop()
+				break loop
+			}
+			app.SetState(event)
+			if event.State.Refresh != nil {
+				event.State.Refresh.Do(app.Refresh)
+			}
+			app.Draw()
+		} else {
+			// Channel is closed. Set to nil channel, which is never selected.
+			// This will keep the app on-screen, waiting for user's quit signal.
+			app.treemapEvents = nil
+		}
+	}
+}
+
+// Event loop
+func (app *App) eventLoop() {
+	defer app.wg.Done()
+	screen := app.screen
+loop:
+	for {
+		var widget views.Widget
+		if widget = app.widget; widget == nil {
+			break
+		}
+
+		ev := screen.PollEvent()
+		switch ev.(type) {
+		case *terminateEventLoopEvent:
+			break loop
+		default:
+			app.HandleEvent(ev)
+		}
+	}
+}
+
+func (app *App) startEventLoop() {
+	app.wg.Add(1)
+	go app.eventLoop()
+}
+
+func (app *App) startDrawLoop() {
+	app.wg.Add(1)
+	go app.drawLoop()
+}
+
+func (app *App) terminateEventLoop() {
+	ev := &terminateEventLoopEvent{}
+	ev.SetEventNow()
+	if scr := app.screen; scr != nil {
+		go func() { scr.PostEventWait(ev) }()
+	}
+}
+
+// initialize initializes the application.  It will normally attempt to
+// allocate a default screen if one is not already established.
+func (a *App) init() error {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		a.err = err
+		return err
+	}
+
+	err = screen.Init()
+	if err != nil {
+		a.err = err
+		return err
+	}
+
+	screen.Clear()
+	a.screen = screen
+	a.SetView(screen)
+	return nil
 }
 
 // printErrors prints error messages to stderr in the Normal Screen Buffer. The
@@ -169,9 +284,14 @@ func (a *App) printErrors() {
 	}
 	lines := strings.Join(msgs, "\n")
 
-	a.app.Suspend()
+	a.Suspend()
 	fmt.Fprintln(os.Stderr, lines)
-	a.app.Resume()
+	a.Resume()
+}
+
+func (app *App) clearAlternateScreen() {
+	app.screen.Clear()
+	app.screen.Show()
 }
 
 func NewApp(path string) *App {
@@ -180,13 +300,16 @@ func NewApp(path string) *App {
 	main := NewMainPanel(title, tv)
 
 	app := &App{
-		app:         &Application2{},
 		path:        path,
 		main:        main,
-		panel:       main,
+		widget:      main,
 		titleBar:    title,
 		treemapView: tv,
 	}
 
 	return app
+}
+
+type terminateEventLoopEvent struct {
+	tcell.EventTime
 }

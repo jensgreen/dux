@@ -2,40 +2,42 @@ package app
 
 import "time"
 
-var _frames = [...]string{
-	"   ",
-	".  ",
-	".. ",
-	"...",
-	" ..",
-	"  .",
-	"   ",
-}
-
 type Spinner struct {
-	frame      int
+	currFrame  int
 	throttle   time.Duration
 	lastUpdate time.Time
+	frames     []string
 }
 
 func NewSpinner() *Spinner {
+	frames := []string{
+		"   ",
+		".  ",
+		".. ",
+		"...",
+		" ..",
+		"  .",
+		"   ",
+	}
+
 	return &Spinner{
 		throttle: 50 * time.Millisecond,
+		frames:   frames,
 	}
 }
 
 func (s *Spinner) String() string {
-	return _frames[s.frame]
+	return s.frames[s.currFrame]
 }
 
 func (s *Spinner) Tick() {
 	now := time.Now()
 	if now.After(s.lastUpdate.Add(s.throttle)) {
-		s.frame = s.nextFrame()
+		s.currFrame = s.nextFrame()
 		s.lastUpdate = now
 	}
 }
 
 func (s *Spinner) nextFrame() int {
-	return (s.frame + 1) % len(_frames)
+	return (s.currFrame + 1) % len(s.frames)
 }

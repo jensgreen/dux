@@ -16,7 +16,7 @@ type State struct {
 	TreemapRect    r2.Rect
 	TotalFiles     int
 	IsWalkingFiles bool
-	Refresh        sync.Once
+	Refresh        *sync.Once
 }
 
 type StateUpdate struct {

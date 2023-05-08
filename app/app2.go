@@ -137,7 +137,7 @@ loop:
 			// tv.spinner.Tick()
 			app.stateSetter(event)
 			if event.State.Refresh != nil {
-				event.State.Refresh.Do(app.refresh)
+				event.State.Refresh.Do(app.Refresh)
 			}
 			app.Draw()
 		} else {
@@ -166,7 +166,7 @@ loop:
 		}
 
 		ev := screen.PollEvent()
-		switch nev := ev.(type) {
+		switch ev.(type) {
 		case *eventAppQuit:
 			break loop
 		// case *eventAppUpdate:
@@ -177,10 +177,6 @@ loop:
 		// 	// screen.Sync()
 		// case *eventAppFunc:
 		// 	nev.fn()
-		case *tcell.EventResize:
-			w, h := nev.Size()
-			// TODO: command accepts treemap size, but this is window size
-			app.commandChan <- dux.Resize{Width: w, Height: h}
 		default:
 			widget.HandleEvent(ev)
 		}
@@ -226,7 +222,7 @@ func (app *Application2) Run() error {
 	return app.err
 }
 
-func (app *Application2) refresh() {
+func (app *Application2) Refresh() {
 	app.screen.Sync()
 }
 

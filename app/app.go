@@ -20,7 +20,7 @@ type App struct {
 	width  int
 	height int
 
-	main     *MainPanel
+	main     *views.Panel
 	titleBar *TitleBar
 	treemap  *TreemapWidget
 
@@ -271,7 +271,10 @@ func (app *App) clearAlternateScreen() {
 func NewApp(path string) *App {
 	tv := NewTreemapWidget()
 	title := NewTitleBar()
-	main := NewMainPanel(title, tv)
+
+	main := &views.Panel{}
+	main.SetTitle(title)
+	main.SetContent(tv)
 
 	fileEvents := make(chan files.FileEvent)
 	stateEvents := make(chan dux.StateEvent)

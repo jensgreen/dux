@@ -11,21 +11,53 @@ import (
 )
 
 type TreemapWidget struct {
-	width  int
-	height int
-	state  dux.State
-	view   views.View
+	width    int
+	height   int
+	appState dux.State
+	treemap  intTreemap
+
+	view         views.View
+	childWidgets []*TreemapWidget
 
 	views.WidgetWatchers
 }
 
 func (tv *TreemapWidget) SetState(state dux.State) {
-	tv.state = state
+	tv.appState = state
+}
+
+func (tv *TreemapWidget) updateWidgets(treemap intTreemap) {
+	widgets := make([]*TreemapWidget, len(treemap.Children))
+	for i, child := range treemap.Children {
+		w := &TreemapWidget{
+			width:    child.Rect.X.Hi - child.Rect.X.Lo,
+			height:   child.Rect.Y.Hi - child.Rect.Y.Lo,
+			appState: tv.appState,
+			treemap:  child,
+		}
+		w.SetView(tv.view)
+		widgets[i] = w
+	}
+	for _, w := range widgets {
+		w.updateWidgets(w.treemap)
+	}
+	tv.treemap = treemap
+	tv.childWidgets = widgets
 }
 
 func (tv *TreemapWidget) Draw() {
 	tv.view.Clear()
-	tv.drawTreemapPane(tv.state)
+	treemap := snapRoundTreemap(tv.appState.Treemap)
+	tv.updateWidgets(treemap)
+	isRoot := true
+	tv.draw(isRoot)
+}
+
+func (tv *TreemapWidget) draw(isRoot bool) {
+	tv.drawSelf(isRoot)
+	for _, c := range tv.childWidgets {
+		c.draw(false)
+	}
 }
 
 func (tv *TreemapWidget) Resize() {
@@ -45,12 +77,6 @@ func (tv *TreemapWidget) SetView(view views.View) {
 
 func (tv *TreemapWidget) Size() (int, int) {
 	return tv.width, tv.height
-}
-
-func (tv *TreemapWidget) Update(state dux.State) {
-	tv.state = state
-	tv.Draw()
-	tv.PostEventWidgetContent(tv)
 }
 
 func (tv *TreemapWidget) closeHalfOpen(rect z2.Rect) z2.Rect {
@@ -92,22 +118,12 @@ func (tv *TreemapWidget) drawBox(rect z2.Rect) {
 	tv.view.SetContent(hi.X, lo.Y, tcell.RuneURCorner, nil, style)
 }
 
-func (tv *TreemapWidget) drawTreemapPane(state dux.State) {
-	itm := snapRoundTreemap(state.Treemap)
-	isRoot := true
-	tv.drawTreemap(state, itm, isRoot)
-}
-
-func (tv *TreemapWidget) drawTreemap(state dux.State, tm intTreemap, isRoot bool) {
-	f := tm.File
-	rect := tv.closeHalfOpen(tm.Rect)
+func (tv *TreemapWidget) drawSelf(isRoot bool) {
+	f := tv.treemap.File
+	rect := tv.closeHalfOpen(tv.treemap.Rect)
 	// log.Printf("Drawing %s at %v (rect: %+v)", f.Path, rect, tm.Rect)
 	tv.drawBox(rect)
 	tv.drawLabel(rect, f, isRoot)
-
-	for _, child := range tm.Children {
-		tv.drawTreemap(state, child, false)
-	}
 }
 
 func (tv *TreemapWidget) drawLabel(rect z2.Rect, f files.File, isRoot bool) {

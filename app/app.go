@@ -42,7 +42,9 @@ func (app *App) Run() error {
 		return err
 	}
 	defer func() {
-		app.screen.Fini()
+		if app.screen != nil {
+			app.screen.Fini()
+		}
 	}()
 
 	go signalHandler(app.commands)
@@ -93,6 +95,20 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 			app.commands <- dux.Refresh{}
 			return true
 		}
+	case *tcell.EventMouse:
+		mx, my := ev.Position()
+		log.Printf("EventMouse Buttons: %#b Modifiers: %#b Pos: (%d, %d)", ev.Buttons(), ev.Modifiers(), mx, my)
+		isClick := ev.Buttons()&tcell.ButtonPrimary == tcell.ButtonPrimary
+		if isClick {
+			log.Printf("Mouse click!")
+			// TODO Coord translation must happen elsewhere so that coords are valid for both titlebar and treemap.
+			// TODO Figure out how to use Views instead?
+			titlebarHeight := 1
+			tx, ty := mx, my-titlebarHeight
+			translated := tcell.NewEventMouse(tx, ty, ev.Buttons(), ev.Modifiers())
+			return app.widget.HandleEvent(translated)
+		}
+		return true
 	case *tcell.EventResize:
 		w, h := ev.Size()
 		app.width = w
@@ -160,6 +176,9 @@ loop:
 				app.terminateEventLoop()
 				break loop
 			}
+			if event.State.Selection != nil {
+				log.Printf("Selection: %s", *event.State.Selection)
+			}
 			app.printErrors(event.Errors)
 			app.SetState(event.State)
 			if event.State.Refresh != nil {
@@ -226,6 +245,7 @@ func (app *App) init() error {
 		return err
 	}
 
+	screen.EnableMouse(tcell.MouseButtonEvents)
 	screen.Clear()
 	app.screen = screen
 	app.SetView(screen)
@@ -269,16 +289,16 @@ func (app *App) clearAlternateScreen() {
 }
 
 func NewApp(path string) *App {
-	tv := NewTreemapWidget()
-	title := NewTitleBar()
+	fileEvents := make(chan files.FileEvent)
+	stateEvents := make(chan dux.StateEvent)
+	commands := make(chan dux.Command)
+
+	tv := NewTreemapWidget(commands)
+	title := NewTitleBar(commands)
 
 	main := &views.Panel{}
 	main.SetTitle(title)
 	main.SetContent(tv)
-
-	fileEvents := make(chan files.FileEvent)
-	stateEvents := make(chan dux.StateEvent)
-	commands := make(chan dux.Command)
 
 	app := &App{
 		path:        path,

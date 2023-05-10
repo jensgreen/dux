@@ -14,6 +14,7 @@ type State struct {
 	TotalFiles     int
 	IsWalkingFiles bool
 	Refresh        *sync.Once
+	Selection      *string
 }
 
 type StateEvent struct {

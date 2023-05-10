@@ -15,6 +15,7 @@ type TreemapWidget struct {
 	height   int
 	appState dux.State
 	treemap  intTreemap
+	commands chan<- dux.Command
 
 	view         views.View
 	childWidgets []*TreemapWidget
@@ -33,6 +34,7 @@ func (tv *TreemapWidget) updateWidgets(treemap intTreemap) {
 			width:    child.Rect.X.Hi - child.Rect.X.Lo,
 			height:   child.Rect.Y.Hi - child.Rect.Y.Lo,
 			appState: tv.appState,
+			commands: tv.commands,
 			treemap:  child,
 		}
 		w.SetView(tv.view)
@@ -68,6 +70,21 @@ func (tv *TreemapWidget) Resize() {
 }
 
 func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
+	switch ev := ev.(type) {
+	case *tcell.EventMouse:
+		mx, my := ev.Position()
+		if tv.treemap.Rect.ContainsPoint(mx, my) {
+			for _, w := range tv.childWidgets {
+				if w.HandleEvent(ev) {
+					return true
+				}
+			}
+			// I contain the point, but none of my children do: stop looking
+			tv.commands <- dux.Select{Path: tv.treemap.File.Path}
+			return true
+		}
+		return false
+	}
 	return false
 }
 
@@ -176,8 +193,10 @@ func (tv *TreemapWidget) drawString(xrange z2.Interval, y int, s string, combc [
 	}
 }
 
-func NewTreemapWidget() *TreemapWidget {
-	tv := &TreemapWidget{}
+func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
+	tv := &TreemapWidget{
+		commands: commands,
+	}
 	return tv
 }
 

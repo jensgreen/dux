@@ -18,6 +18,7 @@ type TitleBar struct {
 	isWalkingFiles bool
 	style          tcell.Style
 	spinner        *Spinner
+	commands       chan<- dux.Command
 
 	views.WidgetWatchers
 }
@@ -55,6 +56,14 @@ func (tb *TitleBar) Resize() {
 }
 
 func (tb *TitleBar) HandleEvent(ev tcell.Event) bool {
+	switch ev.(type) {
+	case *tcell.EventMouse:
+		isClicked := false // TODO check Contains
+		if isClicked {
+			tb.commands <- dux.Deselect{}
+			return true
+		}
+	}
 	return tb.textBar.HandleEvent(ev)
 }
 
@@ -66,7 +75,7 @@ func (tb *TitleBar) Size() (int, int) {
 	return tb.textBar.Size()
 }
 
-func NewTitleBar() *TitleBar {
+func NewTitleBar(commands chan<- dux.Command) *TitleBar {
 	style := tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)
 	text := views.NewTextBar()
 	text.SetStyle(style)
@@ -74,8 +83,9 @@ func NewTitleBar() *TitleBar {
 	spinner := NewSpinner()
 
 	return &TitleBar{
-		textBar: text,
-		style:   style,
-		spinner: spinner,
+		textBar:  text,
+		style:    style,
+		spinner:  spinner,
+		commands: commands,
 	}
 }

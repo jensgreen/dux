@@ -59,3 +59,19 @@ func (cmd Resize) calcAreas(screenWidth int, screenHeight int) r2.Rect {
 		Y: r1.Interval{Lo: 0, Hi: float64(screenHeight)},
 	}
 }
+
+type Select struct {
+	Path string
+}
+
+func (cmd Select) Execute(state State) State {
+	state.Selection = &cmd.Path
+	return state
+}
+
+type Deselect struct {}
+
+func (cmd Deselect) Execute(state State) State {
+	state.Selection = nil
+	return state
+}

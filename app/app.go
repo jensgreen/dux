@@ -167,24 +167,23 @@ func (app *App) drawLoop() {
 	defer app.wg.Done()
 loop:
 	for {
-		event, ok := <-app.stateEvents
-		if ok {
-			if event.State.Quit {
-				// TODO we actually the last (and only the last) alternate screen
-				// to end up in the scrollback buffer
-				app.clearAlternateScreen()
-				app.terminateEventLoop()
-				break loop
-			}
-			if event.State.Selection != nil {
-				log.Printf("Selection: %s", *event.State.Selection)
-			}
-			app.printErrors(event.Errors)
-			app.SetState(event.State)
-			if event.State.Refresh != nil {
-				event.State.Refresh.Do(app.Refresh)
-			}
-			app.Draw()
+		event := <-app.stateEvents
+		if event.State.Quit {
+			// TODO we actually the last (and only the last) alternate screen
+			// to end up in the scrollback buffer
+			app.clearAlternateScreen()
+			app.terminateEventLoop()
+			break loop
+		}
+		if event.State.Selection != nil {
+			log.Printf("Selection: %s", *event.State.Selection)
+		}
+		app.printErrors(event.Errors)
+		app.SetState(event.State)
+		if event.State.Refresh != nil {
+			event.State.Refresh.Do(app.Refresh)
+		}
+		app.Draw()
 		} else {
 			// Channel is closed. Set to nil channel, which is never selected.
 			// This will keep the app on-screen, waiting for user's quit signal.

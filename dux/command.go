@@ -69,7 +69,7 @@ func (cmd Select) Execute(state State) State {
 	return state
 }
 
-type Deselect struct {}
+type Deselect struct{}
 
 func (cmd Deselect) Execute(state State) State {
 	state.Selection = nil

@@ -73,42 +73,9 @@ func (app *App) Run() error {
 func (app *App) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
-		mod, key, ch := ev.Modifiers(), ev.Key(), ev.Rune()
-		log.Printf("EventKey Modifiers: %d Key: %d Rune: %d", mod, key, ch)
-		switch key {
-		case tcell.KeyRune:
-			switch ev.Rune() {
-			case 'q':
-				app.commands <- dux.Quit{}
-				return true
-			case '+':
-				app.commands <- dux.IncreaseMaxDepth{}
-				return true
-			case '-':
-				app.commands <- dux.DecreaseMaxDepth{}
-				return true
-			}
-		case tcell.KeyEscape, tcell.KeyCtrlC:
-			app.commands <- dux.Quit{}
-			return true
-		case tcell.KeyCtrlL:
-			app.commands <- dux.Refresh{}
-			return true
-		}
+		return app.handleKey(ev)
 	case *tcell.EventMouse:
-		mx, my := ev.Position()
-		log.Printf("EventMouse Buttons: %#b Modifiers: %#b Pos: (%d, %d)", ev.Buttons(), ev.Modifiers(), mx, my)
-		isClick := ev.Buttons()&tcell.ButtonPrimary == tcell.ButtonPrimary
-		if isClick {
-			log.Printf("Mouse click!")
-			// TODO Coord translation must happen elsewhere so that coords are valid for both titlebar and treemap.
-			// TODO Figure out how to use Views instead?
-			titlebarHeight := 1
-			tx, ty := mx, my-titlebarHeight
-			translated := tcell.NewEventMouse(tx, ty, ev.Buttons(), ev.Modifiers())
-			return app.widget.HandleEvent(translated)
-		}
-		return true
+		return app.handleMouse(ev)
 	case *tcell.EventResize:
 		w, h := ev.Size()
 		app.width = w
@@ -117,6 +84,50 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 		return true
 	}
 	return app.widget.HandleEvent(ev)
+}
+
+func (app *App) handleKey(ev *tcell.EventKey) bool {
+	mod, key, ch := ev.Modifiers(), ev.Key(), ev.Rune()
+	log.Printf("EventKey Modifiers: %d Key: %d Rune: %d", mod, key, ch)
+	switch key {
+	case tcell.KeyRune:
+		switch ev.Rune() {
+		case 'q':
+			app.commands <- dux.Quit{}
+			return true
+		case '+':
+			app.commands <- dux.IncreaseMaxDepth{}
+			return true
+		case '-':
+			app.commands <- dux.DecreaseMaxDepth{}
+			return true
+		}
+	case tcell.KeyEscape, tcell.KeyCtrlC:
+		app.commands <- dux.Quit{}
+		return true
+	case tcell.KeyCtrlL:
+		app.commands <- dux.Refresh{}
+		return true
+	}
+	return true
+}
+
+func (app *App) handleMouse(ev *tcell.EventMouse) bool {
+	mx, my := ev.Position()
+	log.Printf("EventMouse Buttons: %#b Modifiers: %#b Pos: (%d, %d)", ev.Buttons(), ev.Modifiers(), mx, my)
+
+	isClick := ev.Buttons()&tcell.ButtonPrimary == tcell.ButtonPrimary
+	if isClick {
+		log.Printf("Mouse click!")
+
+		if app.titleBar.HandleEvent(ev) {
+			return true
+		}
+		_, titlebarHeight := app.titleBar.Size()
+		ev := NewEventMouseLocal(mx, my-titlebarHeight, ev)
+		_ = app.treemap.HandleEvent(ev)
+	}
+	return true
 }
 
 func (app *App) SetState(state dux.State) {
@@ -136,12 +147,12 @@ func (app *App) Refresh() {
 func (app *App) Resize() {
 	app.view.Resize(0, 0, app.width, app.height)
 	app.widget.Resize()
-	titlebarHeight := 1
+	app.Refresh()
+	_, th := app.titleBar.Size()
 	app.commands <- dux.Resize{
 		Width:  app.width,
-		Height: app.height - titlebarHeight,
+		Height: app.height - th,
 	}
-	app.Refresh()
 }
 
 func (app *App) Suspend() {
@@ -184,11 +195,6 @@ loop:
 			event.State.Refresh.Do(app.Refresh)
 		}
 		app.Draw()
-		} else {
-			// Channel is closed. Set to nil channel, which is never selected.
-			// This will keep the app on-screen, waiting for user's quit signal.
-			app.stateEvents = nil
-		}
 	}
 }
 

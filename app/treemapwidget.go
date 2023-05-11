@@ -82,8 +82,9 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 			// I contain the point, but none of my children do: stop looking
 			tv.commands <- dux.Select{Path: tv.treemap.File.Path}
 			return true
+		} else {
+			return false
 		}
-		return false
 	}
 	return false
 }

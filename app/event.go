@@ -15,14 +15,6 @@ func (ev *EventMouseLocal) LocalPosition() (int, int) {
 	return ev.localX, ev.localY
 }
 
-func (ev *EventMouseLocal) NewOffset(offsetX int, offsetY int) *EventMouseLocal {
-	return NewEventMouseLocal(
-		ev.localX-offsetX,
-		ev.localY-offsetY,
-		ev.RootEvent(),
-	)
-}
-
 func (ev *EventMouseLocal) RootEvent() *tcell.EventMouse {
 	return ev.event
 }

@@ -4,6 +4,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
 )
 
@@ -96,7 +97,8 @@ func (p *Presenter) tick() {
 		p.state.TotalFiles = len(p.pathLookup)
 	}
 	if p.root != nil {
-		rootTreemap := TreemapWithTiler(*p.root, p.state.TreemapRect, p.Tiler, p.state.MaxDepth, 0)
+		rootRect := r2.RectFromPoints(r2.Point{X:0, Y:0}, p.state.TreemapSize.AsR2())
+		rootTreemap := TreemapWithTiler(*p.root, rootRect, p.Tiler, p.state.MaxDepth, 0)
 		p.state.Treemap = rootTreemap
 	}
 	log.Printf("Sending stateEvent")

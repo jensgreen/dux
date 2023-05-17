@@ -4,8 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/golang/geo/r1"
-	"github.com/golang/geo/r2"
+	"github.com/jensgreen/dux/z2"
 )
 
 type Command interface {
@@ -43,21 +42,15 @@ func (DecreaseMaxDepth) Execute(state State) State {
 }
 
 type Resize struct {
-	Width  int
-	Height int
+	AppSize     z2.Point
+	TreemapSize z2.Point
 }
 
 func (cmd Resize) Execute(state State) State {
-	log.Printf("Treemap area resized to (%d, %d)", cmd.Width, cmd.Height)
-	state.TreemapRect = cmd.calcAreas(cmd.Width, cmd.Height)
+	log.Printf("Resized app to (%d, %d)", cmd.AppSize.X, cmd.AppSize.Y)
+	state.AppSize = cmd.AppSize
+	state.TreemapSize = cmd.TreemapSize
 	return state
-}
-
-func (cmd Resize) calcAreas(screenWidth int, screenHeight int) r2.Rect {
-	return r2.Rect{
-		X: r1.Interval{Lo: 0, Hi: float64(screenWidth)},
-		Y: r1.Interval{Lo: 0, Hi: float64(screenHeight)},
-	}
 }
 
 type Select struct {

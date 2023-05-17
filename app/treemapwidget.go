@@ -150,23 +150,29 @@ func (tv *TreemapWidget) drawLabel(rect z2.Rect, f files.File, isRoot bool) {
 		Hi: rect.X.Hi,
 	}
 
-	fname := f.Name()
+	label := f.Name()
 	if isRoot {
-		fname = f.Path
+		label = f.Path
 	}
+
 	style := tcell.StyleDefault
+	if tv.isSelected() {
+		label = "* " + label
+		style = style.Bold(true)
+	}
+
 	if f.IsDir {
-		if !strings.HasSuffix(fname, "/") {
+		if !strings.HasSuffix(label, "/") {
 			// avoid showing for example "/" as "//"
-			fname += "/"
+			label += "/"
 		}
 		style = style.Foreground(tcell.ColorBlue)
 	}
 
 	// apply styling to name part only
 	xrangeName := xrangeLabel
-	if len(fname) < xrangeName.Hi-xrangeName.Lo {
-		xrangeName.Hi = xrangeName.Lo + len(fname)
+	if len(label) < xrangeName.Hi-xrangeName.Lo {
+		xrangeName.Hi = xrangeName.Lo + len(label)
 	}
 	// draw disk usage in renaming range, if possible
 	xrangeSize := z2.Interval{
@@ -174,7 +180,7 @@ func (tv *TreemapWidget) drawLabel(rect z2.Rect, f files.File, isRoot bool) {
 		Hi: xrangeLabel.Hi,
 	}
 	y := rect.Lo().Y
-	tv.drawString(xrangeName, y, fname, nil, style) // different when dir
+	tv.drawString(xrangeName, y, label, nil, style) // different when dir
 	humanSize := " " + files.HumanizeIEC(f.Size)
 	if xrangeSize.Hi >= xrangeSize.Lo+len(humanSize) {
 		tv.drawString(xrangeSize, y, humanSize, nil, tcell.StyleDefault)
@@ -192,6 +198,10 @@ func (tv *TreemapWidget) drawString(xrange z2.Interval, y int, s string, combc [
 		tv.view.SetContent(x, y, rune(s[i]), combc, style)
 		i++
 	}
+}
+
+func (tv *TreemapWidget) isSelected() bool {
+	return tv.appState.Selection != nil && *tv.appState.Selection == tv.treemap.File.Path
 }
 
 func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {

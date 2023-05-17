@@ -114,7 +114,7 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 
 func (app *App) handleMouse(ev *tcell.EventMouse) bool {
 	mx, my := ev.Position()
-	log.Printf("EventMouse Buttons: %#b Modifiers: %#b Pos: (%d, %d)", ev.Buttons(), ev.Modifiers(), mx, my)
+	log.Printf("EventMouse Buttons: %#b Modifiers: %#b Position: (%d, %d)", ev.Buttons(), ev.Modifiers(), mx, my)
 
 	isClick := ev.Buttons()&tcell.ButtonPrimary == tcell.ButtonPrimary
 	if isClick {

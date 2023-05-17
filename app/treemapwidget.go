@@ -71,8 +71,8 @@ func (tv *TreemapWidget) Resize() {
 
 func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
-	case *tcell.EventMouse:
-		mx, my := ev.Position()
+	case *EventMouseLocal:
+		mx, my := ev.LocalPosition()
 		if tv.treemap.Rect.ContainsPoint(mx, my) {
 			for _, w := range tv.childWidgets {
 				if w.HandleEvent(ev) {

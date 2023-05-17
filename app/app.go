@@ -13,12 +13,12 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/z2"
 )
 
 type App struct {
-	path   string
-	width  int
-	height int
+	path      string
+	prevState *dux.State
 
 	main     *views.Panel
 	titleBar *TitleBar
@@ -65,7 +65,7 @@ func (app *App) Run() error {
 	go pres.Loop()
 
 	app.startEventLoop()
-	app.startDrawLoop()
+	app.startUpdateLoop()
 	app.wg.Wait()
 	return err
 }
@@ -78,9 +78,11 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 		return app.handleMouse(ev)
 	case *tcell.EventResize:
 		w, h := ev.Size()
-		app.width = w
-		app.height = h
-		app.Resize()
+		_, th := app.titleBar.Size()
+		app.commands <- dux.Resize{
+			AppSize:     z2.Point{X: w, Y: h},
+			TreemapSize: z2.Point{X: w, Y: h - th},
+		}
 		return true
 	}
 	return app.widget.HandleEvent(ev)
@@ -144,15 +146,10 @@ func (app *App) Refresh() {
 	app.screen.Sync()
 }
 
-func (app *App) Resize() {
-	app.view.Resize(0, 0, app.width, app.height)
+func (app *App) resize(width int, height int) {
+	app.view.Resize(0, 0, width, height)
 	app.widget.Resize()
 	app.Refresh()
-	_, th := app.titleBar.Size()
-	app.commands <- dux.Resize{
-		Width:  app.width,
-		Height: app.height - th,
-	}
 }
 
 func (app *App) Suspend() {
@@ -173,8 +170,8 @@ func (app *App) Size() (int, int) {
 	return app.widget.Size()
 }
 
-// Draw loop
-func (app *App) drawLoop() {
+// updateLoop polls for state updates and the quit signal, both sent by the presenter
+func (app *App) updateLoop() {
 	defer app.wg.Done()
 loop:
 	for {
@@ -186,19 +183,28 @@ loop:
 			app.terminateEventLoop()
 			break loop
 		}
+		app.printErrors(event.Errors)
+
 		if event.State.Selection != nil {
 			log.Printf("Selection: %s", *event.State.Selection)
 		}
-		app.printErrors(event.Errors)
+
+		if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
+			app.resize(event.State.AppSize.X, event.State.AppSize.Y)
+		}
+
 		app.SetState(event.State)
+
 		if event.State.Refresh != nil {
 			event.State.Refresh.Do(app.Refresh)
 		}
+
 		app.Draw()
 	}
 }
 
-// Event loop
+// eventLoop polls for and handles tcell events. This may result in commands being sent to the presenter,
+// but no direct state updates.
 func (app *App) eventLoop() {
 	defer app.wg.Done()
 	screen := app.screen
@@ -224,9 +230,9 @@ func (app *App) startEventLoop() {
 	go app.eventLoop()
 }
 
-func (app *App) startDrawLoop() {
+func (app *App) startUpdateLoop() {
 	app.wg.Add(1)
-	go app.drawLoop()
+	go app.updateLoop()
 }
 
 func (app *App) terminateEventLoop() {

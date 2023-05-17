@@ -79,6 +79,8 @@ func NewTitleBar(commands chan<- dux.Command) *TitleBar {
 	style := tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)
 	text := views.NewTextBar()
 	text.SetStyle(style)
+	// force initial non-zero size
+	text.SetLeft(" ", style)
 
 	spinner := NewSpinner()
 

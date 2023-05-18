@@ -25,28 +25,35 @@ func (tb *TitleBar) SetState(state dux.State) {
 }
 
 func (tb *TitleBar) updateText(state dux.State) {
-	width, _ := tb.Size()
-
 	var f files.File
 	if state.Selection == nil {
 		f = state.Treemap.File
 	} else {
 		f = state.Selection.File
 	}
+	tb.updateLeft(state, f)
+	tb.updateRight(state)
+}
 
-	s := fmt.Sprintf(
-		" %s %s (%d files)",
+func (tb *TitleBar) updateLeft(state dux.State, f files.File) {
+	left := " " + fmt.Sprintf(
+		"%s %s (%d files)",
 		f.Path,
 		files.HumanizeIEC(f.Size),
 		state.TotalFiles,
 	)
-	if state.IsWalkingFiles {
-		s = fmt.Sprintf("%s %s", s, tb.spinner.String())
-	}
-	s = fmt.Sprintf("%s (%d)", s, state.MaxDepth)
-	s = fmt.Sprintf("%-*v", width-1, s)
+	tb.textBar.SetLeft(left, tb.style)
+}
 
-	tb.textBar.SetLeft(s, tb.style)
+func (tb *TitleBar) updateRight(state dux.State) {
+	right := ""
+	if state.IsWalkingFiles {
+		right = right + tb.spinner.String()
+	}
+	right = right + fmt.Sprintf(" (%d)", state.MaxDepth)
+	width, _ := tb.Size()
+	right = fmt.Sprintf("%-*v", width/2-1, right)
+	tb.textBar.SetRight(right, tb.style)
 }
 
 func (tb *TitleBar) Draw() {

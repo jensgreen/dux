@@ -201,7 +201,7 @@ func (tv *TreemapWidget) drawString(xrange z2.Interval, y int, s string, combc [
 }
 
 func (tv *TreemapWidget) isSelected() bool {
-	return tv.appState.Selection != nil && *tv.appState.Selection == tv.treemap.File.Path
+	return tv.appState.Selection != nil && tv.appState.Selection.File.Path == tv.treemap.File.Path
 }
 
 func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
@@ -213,7 +213,7 @@ func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
 
 // snapRoundTreemap rounds float coordinates in a Treemap to
 // discrete coordinates in an IntTreemap
-func snapRoundTreemap(tm dux.Treemap) intTreemap {
+func snapRoundTreemap(tm *dux.Treemap) intTreemap {
 	children := make([]intTreemap, len(tm.Children))
 	for i, child := range tm.Children {
 		children[i] = snapRoundTreemap(child)

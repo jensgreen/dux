@@ -58,7 +58,9 @@ type Select struct {
 }
 
 func (cmd Select) Execute(state State) State {
-	state.Selection = &cmd.Path
+	if state.Treemap != nil {
+		state.Selection = FindSubTreemap(state.Treemap, cmd.Path)
+	}
 	return state
 }
 

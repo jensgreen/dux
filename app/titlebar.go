@@ -10,38 +10,40 @@ import (
 )
 
 type TitleBar struct {
-	textBar        *views.TextBar
-	path           string
-	size           int64
-	numFiles       int
-	maxDepth       int
-	isWalkingFiles bool
-	style          tcell.Style
-	spinner        *Spinner
-	commands       chan<- dux.Command
+	textBar  *views.TextBar
+	style    tcell.Style
+	spinner  *Spinner
+	commands chan<- dux.Command
 
 	views.WidgetWatchers
 }
 
 func (tb *TitleBar) SetState(state dux.State) {
-	tb.path = state.Treemap.File.Path
-	tb.size = state.Treemap.File.Size
-	tb.numFiles = state.TotalFiles
-	tb.maxDepth = state.MaxDepth
-	tb.isWalkingFiles = state.IsWalkingFiles
-
 	tb.spinner.Tick()
-	tb.updateText()
+	tb.updateText(state)
 	tb.PostEventWidgetContent(tb)
 }
 
-func (tb *TitleBar) updateText() {
+func (tb *TitleBar) updateText(state dux.State) {
 	width, _ := tb.Size()
-	s := fmt.Sprintf(" %s %s (%d files)", tb.path, files.HumanizeIEC(tb.size), tb.numFiles)
-	if tb.isWalkingFiles {
+
+	var f files.File
+	if state.Selection == nil {
+		f = state.Treemap.File
+	} else {
+		f = state.Selection.File
+	}
+
+	s := fmt.Sprintf(
+		" %s %s (%d files)",
+		f.Path,
+		files.HumanizeIEC(f.Size),
+		state.TotalFiles,
+	)
+	if state.IsWalkingFiles {
 		s = fmt.Sprintf("%s %s", s, tb.spinner.String())
 	}
-	s = fmt.Sprintf("%s (%d)", s, tb.maxDepth)
+	s = fmt.Sprintf("%s (%d)", s, state.MaxDepth)
 	s = fmt.Sprintf("%-*v", width-1, s)
 
 	tb.textBar.SetLeft(s, tb.style)
@@ -56,9 +58,11 @@ func (tb *TitleBar) Resize() {
 }
 
 func (tb *TitleBar) HandleEvent(ev tcell.Event) bool {
-	switch ev.(type) {
+	switch ev := ev.(type) {
 	case *tcell.EventMouse:
-		isClicked := false // TODO check Contains
+		width, height := tb.Size()
+		mx, my := ev.Position()
+		isClicked := mx >= 0 && mx < width && my >= 0 && my < height
 		if isClicked {
 			tb.commands <- dux.Deselect{}
 			return true

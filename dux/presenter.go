@@ -96,14 +96,17 @@ func (p *Presenter) tick() {
 		p.add(f)
 		p.state.TotalFiles = len(p.pathLookup)
 	}
+
 	if p.root != nil {
 		rootRect := r2.RectFromPoints(r2.Point{X:0, Y:0}, p.state.TreemapSize.AsR2())
 		rootTreemap := TreemapWithTiler(*p.root, rootRect, p.Tiler, p.state.MaxDepth, 0)
 		p.state.Treemap = rootTreemap
 	}
+
 	log.Printf("Sending stateEvent")
 	p.stateEvents <- StateEvent{State: p.state, Errors: errs}
 	log.Printf("Sent stateEvent")
+
 	if p.state.Quit {
 		close(p.stateEvents)
 	}

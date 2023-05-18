@@ -185,21 +185,19 @@ loop:
 		}
 		app.printErrors(event.Errors)
 
-		if event.State.Selection != nil {
-			log.Printf("Selection: %s", *event.State.Selection)
-		}
-
 		if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
 			app.resize(event.State.AppSize.X, event.State.AppSize.Y)
 		}
 
-		app.SetState(event.State)
+		if event.State.Treemap != nil {
+			app.SetState(event.State)
+			app.Draw()
+		}
 
 		if event.State.Refresh != nil {
 			event.State.Refresh.Do(app.Refresh)
 		}
 
-		app.Draw()
 	}
 }
 

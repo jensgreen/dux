@@ -7,7 +7,8 @@ import (
 )
 
 type State struct {
-	Treemap        Treemap
+	Treemap        *Treemap
+	Selection      *Treemap
 	Quit           bool
 	MaxDepth       int
 	TreemapSize    z2.Point
@@ -15,7 +16,6 @@ type State struct {
 	TotalFiles     int
 	IsWalkingFiles bool
 	Refresh        *sync.Once
-	Selection      *string
 }
 
 type StateEvent struct {

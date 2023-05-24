@@ -42,17 +42,14 @@ func (tb *TitleBar) updateLeft(state dux.State, f files.File) {
 		files.HumanizeIEC(f.Size),
 		state.TotalFiles,
 	)
+	if state.IsWalkingFiles {
+		left += " " + tb.spinner.String()
+	}
 	tb.textBar.SetLeft(left, tb.style)
 }
 
 func (tb *TitleBar) updateRight(state dux.State) {
-	right := ""
-	if state.IsWalkingFiles {
-		right = right + tb.spinner.String()
-	}
-	right = right + fmt.Sprintf(" (%d)", state.MaxDepth)
-	width, _ := tb.Size()
-	right = fmt.Sprintf("%-*v", width/2-1, right)
+	right := fmt.Sprintf("depth: %d ", state.MaxDepth)
 	tb.textBar.SetRight(right, tb.style)
 }
 

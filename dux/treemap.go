@@ -11,6 +11,7 @@ import (
 type Treemap struct {
 	File     files.File
 	Rect     r2.Rect
+	Parent   *Treemap
 	Children []*Treemap
 	Spillage r2.Rect
 }
@@ -29,9 +30,13 @@ func FindSubTreemap(tm *Treemap, path string) *Treemap {
 	return nil
 }
 
-func TreemapWithTiler(tree files.FileTree, rect r2.Rect, tiler Tiler, maxDepth int, depth int) *Treemap {
+func TreemapWithTiler(root files.FileTree, rect r2.Rect, tiler Tiler, maxDepth int, depth int) *Treemap {
+	return treemapWithTiler(nil, root, rect, tiler, maxDepth, depth)
+}
+
+func treemapWithTiler(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler Tiler, maxDepth int, depth int) *Treemap {
 	if len(tree.Children) == 0 {
-		return &Treemap{File: tree.File, Rect: rect, Children: []*Treemap{}}
+		return &Treemap{Parent: parent, File: tree.File, Rect: rect, Children: []*Treemap{}}
 	}
 
 	var childTreemaps []*Treemap
@@ -41,14 +46,25 @@ func TreemapWithTiler(tree files.FileTree, rect r2.Rect, tiler Tiler, maxDepth i
 		X: r1.IntervalFromPoint(rect.X.Hi),
 		Y: r1.IntervalFromPoint(rect.Y.Hi),
 	}
+
+	treemap := &Treemap{
+		Parent: parent,
+		File: tree.File,
+		Rect: rect,
+		Spillage: spillage,
+	}
+
 	if maxDepth == -1 || depth < maxDepth {
 		var tiles []Tile
 		tiles, spillage = tiler.Tile(rect, tree, depth)
 		childTreemaps = make([]*Treemap, len(tiles))
 		for i, tile := range tiles {
-			childTreemaps[i] = TreemapWithTiler(tile.File, tile.Rect, tiler, maxDepth, depth+1)
+			childTreemaps[i] = treemapWithTiler(treemap, tile.File, tile.Rect, tiler, maxDepth, depth+1)
 		}
+
+		treemap.Children = childTreemaps
+		treemap.Spillage = spillage
 	}
 
-	return &Treemap{File: tree.File, Rect: rect, Children: childTreemaps, Spillage: spillage}
+	return treemap
 }

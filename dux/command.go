@@ -70,3 +70,63 @@ func (cmd Deselect) Execute(state State) State {
 	state.Selection = nil
 	return state
 }
+
+type Direction int
+
+const (
+	DirectionLeft Direction = iota
+	DirectionRight
+	DirectionUp
+	DirectionDown
+
+	DirectionIn
+	DirectionOut
+)
+
+type Navigate struct {
+	Direction Direction
+}
+
+func (cmd Navigate) Execute(state State) State {
+	if state.Selection == nil {
+		// TODO
+		return state
+	}
+	if state.Treemap != nil {
+		state.Selection = cmd.navigate(state.Selection, cmd.Direction)
+	}
+	return state
+}
+
+func (cmd Navigate) navigate(selection *Treemap, direction Direction) *Treemap {
+	parent := selection.Parent
+	switch direction {
+	case DirectionLeft:
+		for i := len(parent.Children) - 1; i >= 0; i-- {
+			if parent.Children[i] == selection {
+				if i > 0 {
+					return parent.Children[i-1]
+				}
+				return selection
+			}
+		}
+		return selection
+	case DirectionRight:
+		for i := range parent.Children {
+			if parent.Children[i] == selection {
+				if i < len(parent.Children)-1 {
+					return parent.Children[i+1]
+				}
+				return selection
+			}
+		}
+		return selection
+	case DirectionUp:
+	case DirectionDown:
+	case DirectionIn:
+	case DirectionOut:
+		break // TODO
+	}
+
+	return nil
+}

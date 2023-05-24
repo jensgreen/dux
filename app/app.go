@@ -94,6 +94,11 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 	switch key {
 	case tcell.KeyRune:
 		switch ev.Rune() {
+		case 'h':
+		case 'j':
+		case 'k':
+		case 'l':
+			return true // TODO
 		case 'q':
 			app.commands <- dux.Quit{}
 			return true
@@ -104,6 +109,14 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 			app.commands <- dux.DecreaseMaxDepth{}
 			return true
 		}
+	case tcell.KeyLeft:
+		app.commands <- dux.Navigate{Direction: dux.DirectionLeft}
+	case tcell.KeyRight:
+		app.commands <- dux.Navigate{Direction: dux.DirectionRight}
+	case tcell.KeyUp:
+		app.commands <- dux.Navigate{Direction: dux.DirectionUp}
+	case tcell.KeyDown:
+		app.commands <- dux.Navigate{Direction: dux.DirectionDown}
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		app.commands <- dux.Quit{}
 		return true

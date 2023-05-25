@@ -13,6 +13,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/nav"
 	"github.com/jensgreen/dux/treemap/tiling"
 	"github.com/jensgreen/dux/z2"
 )
@@ -96,13 +97,13 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 	case tcell.KeyRune:
 		switch ev.Rune() {
 		case 'h':
-			app.commands <- dux.Navigate{Direction: dux.DirectionLeft}
+			app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
 		case 'j':
-			app.commands <- dux.Navigate{Direction: dux.DirectionUp}
+			app.commands <- dux.Navigate{Direction: nav.DirectionUp}
 		case 'k':
-			app.commands <- dux.Navigate{Direction: dux.DirectionDown}
+			app.commands <- dux.Navigate{Direction: nav.DirectionDown}
 		case 'l':
-			app.commands <- dux.Navigate{Direction: dux.DirectionRight}
+			app.commands <- dux.Navigate{Direction: nav.DirectionRight}
 		case 'q':
 			app.commands <- dux.Quit{}
 		case '+':
@@ -111,17 +112,17 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 			app.commands <- dux.DecreaseMaxDepth{}
 		}
 	case tcell.KeyLeft:
-		app.commands <- dux.Navigate{Direction: dux.DirectionLeft}
+		app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
 	case tcell.KeyRight:
-		app.commands <- dux.Navigate{Direction: dux.DirectionRight}
+		app.commands <- dux.Navigate{Direction: nav.DirectionRight}
 	case tcell.KeyUp:
-		app.commands <- dux.Navigate{Direction: dux.DirectionUp}
+		app.commands <- dux.Navigate{Direction: nav.DirectionUp}
 	case tcell.KeyDown:
-		app.commands <- dux.Navigate{Direction: dux.DirectionDown}
+		app.commands <- dux.Navigate{Direction: nav.DirectionDown}
 	case tcell.KeyEnter:
-		app.commands <- dux.Navigate{Direction: dux.DirectionIn}
+		app.commands <- dux.Navigate{Direction: nav.DirectionIn}
 	case tcell.KeyBackspace2:
-		app.commands <- dux.Navigate{Direction: dux.DirectionOut}
+		app.commands <- dux.Navigate{Direction: nav.DirectionOut}
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		app.commands <- dux.Quit{}
 	case tcell.KeyCtrlL:

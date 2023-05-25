@@ -7,72 +7,30 @@ import (
 )
 
 func Navigate(tm *treemap.Treemap, direction Direction) *treemap.Treemap {
+	var destination *treemap.Treemap
+
 	switch direction {
 	case DirectionLeft:
-		sibling := westNeighbor(tm)
-		if sibling != nil {
-			return sibling
-		}
+		destination = stepLeft(tm)
 	case DirectionRight:
-		neighbor := eastNeighbor(tm)
-		if neighbor != nil {
-			return neighbor
-		}
+		destination = stepRight(tm)
 	case DirectionUp:
-		neighbor := northNeighbor(tm)
-		if neighbor != nil {
-			return neighbor
-		}
+		destination = stepUp(tm)
 	case DirectionDown:
-		neighbor := southNeighbor(tm)
-		if neighbor != nil {
-			return neighbor
-		}
+		destination = stepDown(tm)
 	case DirectionIn:
-		neighbor := stepIn(tm)
-		if neighbor != nil {
-			return neighbor
-		}
+		destination = stepIn(tm)
 	case DirectionOut:
-		neighbor := stepOut(tm)
-		if neighbor != nil {
-			return neighbor
-		}
+		destination = stepOut(tm)
 	}
 
-	return tm
+	if destination == nil {
+		return tm
+	}
+	return destination
 }
 
-func eastNeighbor(tm *treemap.Treemap) *treemap.Treemap {
-	parent := tm.Parent
-	if parent == nil {
-		return nil
-	}
-
-	or := orientationOf(tm)
-	switch or {
-	case orientationHorizontal:
-		sibling := nextSibling(tm, orientationHorizontal)
-		if sibling != nil {
-			return sibling
-		}
-		return eastNeighbor(parent)
-	case orientationVertical:
-		return nextSibling(tm, orientationHorizontal)
-	case orientationNone:
-		switch orientationOf(parent) {
-		case orientationHorizontal:
-			return nextSibling(tm, orientationHorizontal)
-		case orientationVertical:
-			return eastNeighbor(parent)
-		default:
-			return eastNeighbor(parent)
-		}
-	}
-	return nil
-}
-
-func westNeighbor(tm *treemap.Treemap) *treemap.Treemap {
+func stepLeft(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -85,7 +43,7 @@ func westNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 		if sibling != nil {
 			return sibling
 		}
-		return westNeighbor(parent)
+		return stepLeft(parent)
 	case orientationVertical:
 		return prevSibling(tm, orientationHorizontal)
 	case orientationNone:
@@ -93,15 +51,45 @@ func westNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 		case orientationHorizontal:
 			return prevSibling(tm, orientationHorizontal)
 		case orientationVertical:
-			return westNeighbor(parent)
+			return stepLeft(parent)
 		default:
-			return westNeighbor(parent)
+			return stepLeft(parent)
 		}
 	}
 	return nil
 }
 
-func northNeighbor(tm *treemap.Treemap) *treemap.Treemap {
+func stepRight(tm *treemap.Treemap) *treemap.Treemap {
+	parent := tm.Parent
+	if parent == nil {
+		return nil
+	}
+
+	or := orientationOf(tm)
+	switch or {
+	case orientationHorizontal:
+		sibling := nextSibling(tm, orientationHorizontal)
+		if sibling != nil {
+			return sibling
+		}
+		return stepRight(parent)
+	case orientationVertical:
+		return nextSibling(tm, orientationHorizontal)
+	case orientationNone:
+		switch orientationOf(parent) {
+		case orientationHorizontal:
+			return nextSibling(tm, orientationHorizontal)
+		case orientationVertical:
+			return stepRight(parent)
+		default:
+			return stepRight(parent)
+		}
+	}
+	return nil
+}
+
+
+func stepUp(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -114,7 +102,7 @@ func northNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 		if sibling != nil {
 			return sibling
 		}
-		return northNeighbor(parent)
+		return stepUp(parent)
 	case orientationHorizontal:
 		return prevSibling(tm, orientationVertical)
 	case orientationNone:
@@ -122,15 +110,15 @@ func northNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 		case orientationVertical:
 			return prevSibling(tm, orientationVertical)
 		case orientationHorizontal:
-			return northNeighbor(parent)
+			return stepUp(parent)
 		default:
-			return northNeighbor(parent)
+			return stepUp(parent)
 		}
 	}
 	return nil
 }
 
-func southNeighbor(tm *treemap.Treemap) *treemap.Treemap {
+func stepDown(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -143,7 +131,7 @@ func southNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 		if sibling != nil {
 			return sibling
 		}
-		return southNeighbor(parent)
+		return stepDown(parent)
 	case orientationHorizontal:
 		return nextSibling(tm, orientationVertical)
 	case orientationNone:
@@ -151,9 +139,9 @@ func southNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 		case orientationVertical:
 			return nextSibling(tm, orientationVertical)
 		case orientationHorizontal:
-			return southNeighbor(parent)
+			return stepDown(parent)
 		default:
-			return southNeighbor(parent)
+			return stepDown(parent)
 		}
 	}
 	return nil

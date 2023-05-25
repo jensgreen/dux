@@ -6,13 +6,15 @@ import (
 
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/treemap"
+	"github.com/jensgreen/dux/treemap/tiling"
 )
 
 type Presenter struct {
 	FileEvents  <-chan files.FileEvent
 	Commands    <-chan Command
 	stateEvents chan<- StateEvent
-	Tiler       Tiler
+	Tiler       tiling.Tiler
 	state       State
 	root        *files.FileTree
 	pathLookup  map[string]*files.FileTree
@@ -23,7 +25,7 @@ func NewPresenter(
 	commands <-chan Command,
 	stateEvents chan<- StateEvent,
 	initialState State,
-	tiler Tiler,
+	tiler tiling.Tiler,
 ) Presenter {
 	return Presenter{
 		FileEvents:  fileEvents,
@@ -99,7 +101,7 @@ func (p *Presenter) tick() {
 
 	if p.root != nil {
 		rootRect := r2.RectFromPoints(r2.Point{X:0, Y:0}, p.state.TreemapSize.AsR2())
-		rootTreemap := TreemapWithTiler(*p.root, rootRect, p.Tiler, p.state.MaxDepth, 0)
+		rootTreemap := treemap.New(*p.root, rootRect, p.Tiler, p.state.MaxDepth, 0)
 		p.state.Treemap = rootTreemap
 	}
 

@@ -3,6 +3,8 @@ package dux
 import (
 	"fmt"
 	"math"
+
+	"github.com/jensgreen/dux/treemap"
 )
 
 type Orientation int
@@ -17,7 +19,7 @@ const (
 	OrientationVertical
 )
 
-func orientation(treemap *Treemap) Orientation {
+func orientation(treemap *treemap.Treemap) Orientation {
 	if len(treemap.Children) < 2 {
 		return OrientationNone
 	}
@@ -42,13 +44,13 @@ const (
 )
 
 type Navigator interface {
-	Navigate(treemap *Treemap, direction Direction) *Treemap
+	Navigate(treemap *treemap.Treemap, direction Direction) *treemap.Treemap
 }
 
 type navigator struct {
 }
 
-func (n *navigator) Navigate(tm *Treemap, direction Direction) *Treemap {
+func (n *navigator) Navigate(tm *treemap.Treemap, direction Direction) *treemap.Treemap {
 	switch direction {
 	case DirectionLeft:
 		sibling := n.westNeighbor(tm)
@@ -85,7 +87,7 @@ func (n *navigator) Navigate(tm *Treemap, direction Direction) *Treemap {
 	return tm
 }
 
-func (n *navigator) eastNeighbor(tm *Treemap) *Treemap {
+func (n *navigator) eastNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -114,7 +116,7 @@ func (n *navigator) eastNeighbor(tm *Treemap) *Treemap {
 	return nil
 }
 
-func (n *navigator) westNeighbor(tm *Treemap) *Treemap {
+func (n *navigator) westNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -143,7 +145,7 @@ func (n *navigator) westNeighbor(tm *Treemap) *Treemap {
 	return nil
 }
 
-func (n *navigator) northNeighbor(tm *Treemap) *Treemap {
+func (n *navigator) northNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -172,7 +174,7 @@ func (n *navigator) northNeighbor(tm *Treemap) *Treemap {
 	return nil
 }
 
-func (n *navigator) southNeighbor(tm *Treemap) *Treemap {
+func (n *navigator) southNeighbor(tm *treemap.Treemap) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -201,21 +203,21 @@ func (n *navigator) southNeighbor(tm *Treemap) *Treemap {
 	return nil
 }
 
-func (n *navigator) stepIn(tm *Treemap) *Treemap {
+func (n *navigator) stepIn(tm *treemap.Treemap) *treemap.Treemap {
 	if (len(tm.Children) > 0) {
 		return tm.Children[0]
 	}
 	return nil
 }
 
-func (n *navigator) stepOut(tm *Treemap) *Treemap {
+func (n *navigator) stepOut(tm *treemap.Treemap) *treemap.Treemap {
 	if (tm.Parent != nil) {
 		return tm.Parent
 	}
 	return nil
 }
 
-func (n *navigator) nextSibling(tm *Treemap, or Orientation) *Treemap {
+func (n *navigator) nextSibling(tm *treemap.Treemap, or Orientation) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -236,7 +238,7 @@ func (n *navigator) nextSibling(tm *Treemap, or Orientation) *Treemap {
 	panic(fmt.Sprintf("%s not a child of %s", tm.Path(), parent.Path()))
 }
 
-func (n *navigator) prevSibling(tm *Treemap, or Orientation) *Treemap {
+func (n *navigator) prevSibling(tm *treemap.Treemap, or Orientation) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
 		return nil

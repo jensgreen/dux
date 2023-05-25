@@ -3,12 +3,13 @@ package dux
 import (
 	"sync"
 
+	"github.com/jensgreen/dux/treemap"
 	"github.com/jensgreen/dux/z2"
 )
 
 type State struct {
-	Treemap        *Treemap
-	Selection      *Treemap
+	Treemap        *treemap.Treemap
+	Selection      *treemap.Treemap
 	Quit           bool
 	MaxDepth       int
 	TreemapSize    z2.Point

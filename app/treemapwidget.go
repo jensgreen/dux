@@ -7,6 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/treemap"
 	"github.com/jensgreen/dux/z2"
 )
 
@@ -213,7 +214,7 @@ func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
 
 // snapRoundTreemap rounds float coordinates in a Treemap to
 // discrete coordinates in an IntTreemap
-func snapRoundTreemap(tm *dux.Treemap) intTreemap {
+func snapRoundTreemap(tm *treemap.Treemap) intTreemap {
 	children := make([]intTreemap, len(tm.Children))
 	for i, child := range tm.Children {
 		children[i] = snapRoundTreemap(child)

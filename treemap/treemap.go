@@ -1,4 +1,4 @@
-package dux
+package treemap
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 	"github.com/golang/geo/r1"
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/treemap/tiling"
 )
 
 type Treemap struct {
@@ -34,11 +35,11 @@ func (tm *Treemap) FindSubTreemap(path string) *Treemap {
 	return nil
 }
 
-func TreemapWithTiler(root files.FileTree, rect r2.Rect, tiler Tiler, maxDepth int, depth int) *Treemap {
-	return treemapWithTiler(nil, root, rect, tiler, maxDepth, depth)
+func New(root files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int, depth int) *Treemap {
+	return newWithParent(nil, root, rect, tiler, maxDepth, depth)
 }
 
-func treemapWithTiler(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler Tiler, maxDepth int, depth int) *Treemap {
+func newWithParent(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int, depth int) *Treemap {
 	if len(tree.Children) == 0 {
 		return &Treemap{Parent: parent, File: tree.File, Rect: rect, Children: []*Treemap{}}
 	}
@@ -59,11 +60,11 @@ func treemapWithTiler(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler 
 	}
 
 	if maxDepth == -1 || depth < maxDepth {
-		var tiles []Tile
+		var tiles []tiling.Tile
 		tiles, spillage = tiler.Tile(rect, tree, depth)
 		childTreemaps = make([]*Treemap, len(tiles))
 		for i, tile := range tiles {
-			childTreemaps[i] = treemapWithTiler(treemap, tile.File, tile.Rect, tiler, maxDepth, depth+1)
+			childTreemaps[i] = newWithParent(treemap, tile.File, tile.Rect, tiler, maxDepth, depth+1)
 		}
 
 		treemap.Children = childTreemaps

@@ -13,6 +13,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/treemap/tiling"
 	"github.com/jensgreen/dux/z2"
 )
 
@@ -60,7 +61,7 @@ func (app *App) Run() error {
 		app.commands,
 		app.stateEvents,
 		initState,
-		dux.WithPadding(dux.SliceAndDice{}, 1.0),
+		tiling.WithPadding(tiling.SliceAndDice{}, 1.0),
 	)
 	go pres.Loop()
 

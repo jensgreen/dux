@@ -1,4 +1,4 @@
-package dux
+package tiling
 
 import (
 	"github.com/golang/geo/r1"

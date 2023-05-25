@@ -10,12 +10,13 @@ import (
 
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/treemap/tiling"
 )
 
 type mockTiler struct{}
 
-func (t mockTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
-	return make([]Tile, len(fileTree.Children)), r2.EmptyRect()
+func (t mockTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []tiling.Tile, spillage r2.Rect) {
+	return make([]tiling.Tile, len(fileTree.Children)), r2.EmptyRect()
 }
 
 func Test_TickProducesstateEventEvent(t *testing.T) {

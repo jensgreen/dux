@@ -1,16 +1,17 @@
-package dux
+package treemap
 
 import (
 	"testing"
 
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/treemap/tiling"
 )
 
 func TestTreemapWithTiler_NoChildren(t *testing.T) {
 	tree := files.FileTree{}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := TreemapWithTiler(tree, rect, VerticalSplit{}, -1, 0)
+	got := New(tree, rect, tiling.VerticalSplit{}, -1, 0)
 
 	expected := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
 	if !expected.ApproxEqual(got.Rect) {
@@ -30,7 +31,7 @@ func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
 		},
 	}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := TreemapWithTiler(tree, rect, VerticalSplit{}, -1, 0)
+	got := New(tree, rect, tiling.VerticalSplit{}, -1, 0)
 
 	if len(got.Children) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got.Children))
@@ -52,7 +53,7 @@ func TestVerticalSplit_SplitsTwoEqualWeightsInHalfVertically(t *testing.T) {
 			{File: files.File{Size: 1}},
 		},
 	}
-	got, _ := VerticalSplit{}.Tile(rect, fileTree, 0)
+	got, _ := tiling.VerticalSplit{}.Tile(rect, fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
@@ -74,7 +75,7 @@ func TestHorizontalSplit_SplitsTwoEqualWeightsInHalfHorizontally(t *testing.T) {
 			{File: files.File{Size: 1}},
 		},
 	}
-	got, _ := HorizontalSplit{}.Tile(rect, fileTree, 0)
+	got, _ := tiling.HorizontalSplit{}.Tile(rect, fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
@@ -96,7 +97,7 @@ func TestHorizontalSplit_WorksWithNonZeroX(t *testing.T) {
 			{File: files.File{Size: 1}},
 		},
 	}
-	got, _ := HorizontalSplit{}.Tile(rect, fileTree, 0)
+	got, _ := tiling.HorizontalSplit{}.Tile(rect, fileTree, 0)
 
 	if !got[0].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 50, Y: 20})) {
 		t.Errorf("got %v", got[0].Rect)
@@ -115,7 +116,7 @@ func TestVerticalSplit_SplitsTwoNoRemainder(t *testing.T) {
 			{File: files.File{Size: 2}},
 		},
 	}
-	got, _ := VerticalSplit{}.Tile(rect, fileTree, 0)
+	got, _ := tiling.VerticalSplit{}.Tile(rect, fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))

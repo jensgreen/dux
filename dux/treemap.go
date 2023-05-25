@@ -16,14 +16,18 @@ type Treemap struct {
 	Spillage r2.Rect
 }
 
-func FindSubTreemap(tm *Treemap, path string) *Treemap {
-	if path == tm.File.Path {
+func (tm *Treemap) Path() string {
+	return tm.File.Path
+}
+
+func (tm *Treemap) FindSubTreemap(path string) *Treemap {
+	if path == tm.Path() {
 		return tm
 	}
 
 	for _, c := range tm.Children {
-		if strings.HasPrefix(path, c.File.Path) {
-			return FindSubTreemap(c, path)
+		if strings.HasPrefix(path, c.Path()) {
+			return c.FindSubTreemap(path)
 		}
 	}
 
@@ -48,9 +52,9 @@ func treemapWithTiler(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler 
 	}
 
 	treemap := &Treemap{
-		Parent: parent,
-		File: tree.File,
-		Rect: rect,
+		Parent:   parent,
+		File:     tree.File,
+		Rect:     rect,
 		Spillage: spillage,
 	}
 

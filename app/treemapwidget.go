@@ -80,7 +80,7 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 				}
 			}
 			// I contain the point, but none of my children do: stop looking
-			tv.commands <- dux.Select{Path: tv.treemap.File.Path}
+			tv.commands <- dux.Select{Path: tv.treemap.Path()}
 			return true
 		} else {
 			return false
@@ -201,7 +201,7 @@ func (tv *TreemapWidget) drawString(xrange z2.Interval, y int, s string, combc [
 }
 
 func (tv *TreemapWidget) isSelected() bool {
-	return tv.appState.Selection != nil && tv.appState.Selection.File.Path == tv.treemap.File.Path
+	return tv.appState.Selection != nil && tv.appState.Selection.Path() == tv.treemap.Path()
 }
 
 func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
@@ -230,4 +230,8 @@ type intTreemap struct {
 	File     files.File
 	Rect     z2.Rect
 	Children []intTreemap
+}
+
+func (itm *intTreemap) Path() string {
+	return itm.File.Path
 }

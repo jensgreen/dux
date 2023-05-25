@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/jensgreen/dux/nav"
 	"github.com/jensgreen/dux/z2"
 )
 
@@ -72,7 +73,7 @@ func (cmd Deselect) Execute(state State) State {
 }
 
 type Navigate struct {
-	Direction Direction
+	Direction nav.Direction
 }
 
 func (cmd Navigate) Execute(state State) State {
@@ -81,7 +82,6 @@ func (cmd Navigate) Execute(state State) State {
 		return state
 	}
 	if state.Treemap != nil {
-		nav := NewNavigator()
 		state.Selection = nav.Navigate(state.Selection, cmd.Direction)
 	}
 	return state

@@ -31,7 +31,7 @@ func Test_TickProducesstateEventEvent(t *testing.T) {
 	if !ok {
 		t.Errorf("expected stateEvent")
 	}
-	gotPath := stateEvent.State.Treemap.File.Path
+	gotPath := stateEvent.State.Treemap.Path()
 	if "foo" != gotPath {
 		t.Errorf("expected stateEvent for %v, got %v", "foo", gotPath)
 	}
@@ -80,7 +80,7 @@ func Test_EmitsstateEventForRootOnEachFileEvent(t *testing.T) {
 	pres.tick() // Quit
 
 	for event := range stateEvents {
-		path := event.State.Treemap.File.Path
+		path := event.State.Treemap.Path()
 		if path != "foo" {
 			t.Errorf("expected stateEvent for root %v, got %v", "foo", path)
 		}

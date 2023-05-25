@@ -95,19 +95,19 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 	case tcell.KeyRune:
 		switch ev.Rune() {
 		case 'h':
+			app.commands <- dux.Navigate{Direction: dux.DirectionLeft}
 		case 'j':
+			app.commands <- dux.Navigate{Direction: dux.DirectionUp}
 		case 'k':
+			app.commands <- dux.Navigate{Direction: dux.DirectionDown}
 		case 'l':
-			return true // TODO
+			app.commands <- dux.Navigate{Direction: dux.DirectionRight}
 		case 'q':
 			app.commands <- dux.Quit{}
-			return true
 		case '+':
 			app.commands <- dux.IncreaseMaxDepth{}
-			return true
 		case '-':
 			app.commands <- dux.DecreaseMaxDepth{}
-			return true
 		}
 	case tcell.KeyLeft:
 		app.commands <- dux.Navigate{Direction: dux.DirectionLeft}
@@ -117,13 +117,16 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 		app.commands <- dux.Navigate{Direction: dux.DirectionUp}
 	case tcell.KeyDown:
 		app.commands <- dux.Navigate{Direction: dux.DirectionDown}
+	case tcell.KeyEnter:
+		app.commands <- dux.Navigate{Direction: dux.DirectionIn}
+	case tcell.KeyBackspace2:
+		app.commands <- dux.Navigate{Direction: dux.DirectionOut}
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		app.commands <- dux.Quit{}
-		return true
 	case tcell.KeyCtrlL:
 		app.commands <- dux.Refresh{}
-		return true
 	}
+	// key events are always consumed here at the top level
 	return true
 }
 

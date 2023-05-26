@@ -77,12 +77,21 @@ type Navigate struct {
 }
 
 func (cmd Navigate) Execute(state State) State {
+	root := state.Treemap
 	if state.Selection == nil {
-		// TODO
+		if cmd.Direction == nav.DirectionOut {
+			return state
+		}
+		state.Selection = root
 		return state
 	}
 	if state.Treemap != nil {
+		if cmd.Direction == nav.DirectionOut && state.Selection.Path() == root.Path() {
+			state.Selection = nil
+			return state
+		}
 		state.Selection = nav.Navigate(state.Selection, cmd.Direction)
+		return state
 	}
 	return state
 }

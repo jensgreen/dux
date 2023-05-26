@@ -6,6 +6,9 @@ import (
 	"github.com/jensgreen/dux/treemap"
 )
 
+// Navigate returns an adjacent Treemap in the given direction,
+// stepping up the tree if necessary. Returns input Treemap if no
+// valid destination exists (e.g. for the root).
 func Navigate(tm *treemap.Treemap, direction Direction) *treemap.Treemap {
 	var destination *treemap.Treemap
 
@@ -31,117 +34,70 @@ func Navigate(tm *treemap.Treemap, direction Direction) *treemap.Treemap {
 }
 
 func stepLeft(tm *treemap.Treemap) *treemap.Treemap {
-	parent := tm.Parent
-	if parent == nil {
-		return nil
-	}
-
-	or := orientationOf(tm)
-	switch or {
-	case orientationHorizontal:
-		sibling := prevSibling(tm, orientationHorizontal)
-		if sibling != nil {
-			return sibling
-		}
-		return stepLeft(parent)
-	case orientationVertical:
-		return prevSibling(tm, orientationHorizontal)
-	case orientationNone:
-		switch orientationOf(parent) {
-		case orientationHorizontal:
-			return prevSibling(tm, orientationHorizontal)
-		case orientationVertical:
-			return stepLeft(parent)
-		default:
-			return stepLeft(parent)
-		}
-	}
-	return nil
+	return stepHorizontal(tm, prevSibling)
 }
 
 func stepRight(tm *treemap.Treemap) *treemap.Treemap {
-	parent := tm.Parent
-	if parent == nil {
-		return nil
-	}
-
-	or := orientationOf(tm)
-	switch or {
-	case orientationHorizontal:
-		sibling := nextSibling(tm, orientationHorizontal)
-		if sibling != nil {
-			return sibling
-		}
-		return stepRight(parent)
-	case orientationVertical:
-		return nextSibling(tm, orientationHorizontal)
-	case orientationNone:
-		switch orientationOf(parent) {
-		case orientationHorizontal:
-			return nextSibling(tm, orientationHorizontal)
-		case orientationVertical:
-			return stepRight(parent)
-		default:
-			return stepRight(parent)
-		}
-	}
-	return nil
+	return stepHorizontal(tm, nextSibling)
 }
 
-
 func stepUp(tm *treemap.Treemap) *treemap.Treemap {
-	parent := tm.Parent
-	if parent == nil {
-		return nil
-	}
-
-	or := orientationOf(tm)
-	switch or {
-	case orientationVertical:
-		sibling := prevSibling(tm, orientationVertical)
-		if sibling != nil {
-			return sibling
-		}
-		return stepUp(parent)
-	case orientationHorizontal:
-		return prevSibling(tm, orientationVertical)
-	case orientationNone:
-		switch orientationOf(parent) {
-		case orientationVertical:
-			return prevSibling(tm, orientationVertical)
-		case orientationHorizontal:
-			return stepUp(parent)
-		default:
-			return stepUp(parent)
-		}
-	}
-	return nil
+	return stepVertical(tm, prevSibling)
 }
 
 func stepDown(tm *treemap.Treemap) *treemap.Treemap {
+	return stepVertical(tm, nextSibling)
+}
+
+func stepHorizontal(tm *treemap.Treemap, getSibling adjacentSibling) *treemap.Treemap {
 	parent := tm.Parent
-	if parent == nil {
+	isRoot := parent == nil
+	if isRoot {
 		return nil
 	}
 
-	or := orientationOf(tm)
-	switch or {
-	case orientationVertical:
-		sibling := nextSibling(tm, orientationVertical)
+	switch orientationOf(tm) {
+	case orientationHorizontal:
+		sibling := getSibling(tm, orientationHorizontal)
 		if sibling != nil {
 			return sibling
 		}
-		return stepDown(parent)
+		return stepHorizontal(parent, getSibling)
+	case orientationVertical:
+		return getSibling(tm, orientationHorizontal)
+	case orientationNone:
+		switch orientationOf(parent) {
+		case orientationHorizontal:
+			return getSibling(tm, orientationHorizontal)
+		default:
+			return stepHorizontal(parent, getSibling)
+		}
+	}
+	return nil
+}
+
+func stepVertical(tm *treemap.Treemap, getSibling adjacentSibling) *treemap.Treemap {
+	parent := tm.Parent
+	isRoot := parent == nil
+	if isRoot {
+		return nil
+	}
+
+	switch orientationOf(tm) {
+	case orientationVertical:
+		sibling := getSibling(tm, orientationVertical)
+		if sibling != nil {
+			return sibling
+		}
+		return stepVertical(parent, getSibling)
 	case orientationHorizontal:
-		return nextSibling(tm, orientationVertical)
+		return getSibling(tm, orientationVertical)
 	case orientationNone:
 		switch orientationOf(parent) {
 		case orientationVertical:
-			return nextSibling(tm, orientationVertical)
-		case orientationHorizontal:
-			return stepDown(parent)
+			return getSibling(tm, orientationVertical)
 		default:
-			return stepDown(parent)
+			return stepVertical(parent, getSibling)
 		}
 	}
 	return nil
@@ -161,6 +117,10 @@ func stepOut(tm *treemap.Treemap) *treemap.Treemap {
 	return nil
 }
 
+// get the next/previous sibling in the given orientation
+type adjacentSibling func(*treemap.Treemap, orientation) *treemap.Treemap
+
+// implements adjacentSibling
 func nextSibling(tm *treemap.Treemap, or orientation) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {
@@ -182,6 +142,7 @@ func nextSibling(tm *treemap.Treemap, or orientation) *treemap.Treemap {
 	panic(fmt.Sprintf("%s not a child of %s", tm.Path(), parent.Path()))
 }
 
+// implements adjacentSibling
 func prevSibling(tm *treemap.Treemap, or orientation) *treemap.Treemap {
 	parent := tm.Parent
 	if parent == nil {

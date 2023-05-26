@@ -5,14 +5,36 @@ import (
 	"os"
 
 	"github.com/jensgreen/dux/app"
+	"github.com/jensgreen/dux/dux"
+	"github.com/jensgreen/dux/files"
 	"github.com/jensgreen/dux/logging"
+	"github.com/jensgreen/dux/treemap/tiling"
 )
 
 func main() {
 	path, debug := app.ArgsOrExit()
 	logging.Setup(debug)
 
-	app := app.NewApp(path)
+	fileEvents := make(chan files.FileEvent)
+	stateEvents := make(chan dux.StateEvent)
+	commands := make(chan dux.Command)
+
+	initState := dux.State{
+		MaxDepth:       2,
+		IsWalkingFiles: true,
+	}
+
+	pres := dux.NewPresenter(
+		fileEvents,
+		commands,
+		stateEvents,
+		initState,
+		tiling.WithPadding(tiling.SliceAndDice{}, 1.0),
+	)
+	app := app.NewApp(path, stateEvents, commands)
+
+	go pres.Loop()
+	go files.WalkDir(path, fileEvents, os.ReadDir)
 	err := app.Run()
 
 	if err != nil {

@@ -12,9 +12,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
-	"github.com/jensgreen/dux/files"
 	"github.com/jensgreen/dux/nav"
-	"github.com/jensgreen/dux/treemap/tiling"
 	"github.com/jensgreen/dux/z2"
 )
 
@@ -31,9 +29,8 @@ type App struct {
 	widget views.Widget
 	wg     sync.WaitGroup
 
-	fileEvents  chan files.FileEvent
-	stateEvents chan dux.StateEvent
-	commands    chan dux.Command
+	stateEvents <-chan dux.StateEvent
+	commands    chan<- dux.Command
 }
 
 func (app *App) Run() error {
@@ -50,22 +47,6 @@ func (app *App) Run() error {
 	}()
 
 	go signalHandler(app.commands)
-	go files.WalkDir(app.path, app.fileEvents, os.ReadDir)
-
-	initState := dux.State{
-		MaxDepth:       2,
-		IsWalkingFiles: true,
-	}
-
-	pres := dux.NewPresenter(
-		app.fileEvents,
-		app.commands,
-		app.stateEvents,
-		initState,
-		tiling.WithPadding(tiling.SliceAndDice{}, 1.0),
-	)
-	go pres.Loop()
-
 	app.startEventLoop()
 	app.startUpdateLoop()
 	app.wg.Wait()
@@ -315,11 +296,7 @@ func (app *App) clearAlternateScreen() {
 	app.screen.Show()
 }
 
-func NewApp(path string) *App {
-	fileEvents := make(chan files.FileEvent)
-	stateEvents := make(chan dux.StateEvent)
-	commands := make(chan dux.Command)
-
+func NewApp(path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {
 	tv := NewTreemapWidget(commands)
 	title := NewTitleBar(commands)
 
@@ -333,7 +310,6 @@ func NewApp(path string) *App {
 		widget:      main,
 		titleBar:    title,
 		treemap:     tv,
-		fileEvents:  fileEvents,
 		stateEvents: stateEvents,
 		commands:    commands,
 	}

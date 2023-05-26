@@ -5,6 +5,8 @@ import (
 
 	"github.com/jensgreen/dux/treemap"
 )
+
+// orientaiton that children in a treemap stretches out in
 type orientation int
 
 const (

@@ -100,9 +100,12 @@ func (p *Presenter) tick() {
 	}
 
 	if p.root != nil {
-		rootRect := r2.RectFromPoints(r2.Point{X:0, Y:0}, p.state.TreemapSize.AsR2())
+		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, p.state.TreemapSize.AsR2())
 		rootTreemap := treemap.New(*p.root, rootRect, p.Tiler, p.state.MaxDepth, 0)
 		p.state.Treemap = rootTreemap
+		if p.state.Selection != nil {
+			p.state.Selection = rootTreemap.FindSubTreemap(p.state.Selection.Path())
+		}
 	}
 
 	log.Printf("Sending stateEvent")

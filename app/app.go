@@ -99,9 +99,9 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 		case 'h':
 			app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
 		case 'j':
-			app.commands <- dux.Navigate{Direction: nav.DirectionUp}
-		case 'k':
 			app.commands <- dux.Navigate{Direction: nav.DirectionDown}
+		case 'k':
+			app.commands <- dux.Navigate{Direction: nav.DirectionUp}
 		case 'l':
 			app.commands <- dux.Navigate{Direction: nav.DirectionRight}
 		case 'q':

@@ -1,9 +1,9 @@
 # TODO
 
 * Keyboard navigation
-  * [ ] hjkl
-  * [ ] Highlight current tile
-  * [ ] Enter/backspace -> go down/up?
+  * [✓] hjkl
+  * [✓] Highlight current tile
+  * [✓] Enter/backspace -> go down/up?
 * Reactive
   * [✓] Progressively build tree and treemap
   * [✓] Resize on SIGWINCH
@@ -12,7 +12,7 @@
   * [✓] Hide thin tiles
   * [✓] Issue with rightmost columns when thin (e.g. .git)
   * [ ] Send to background with ^Z
-  * [ ] Progress indicator
+  * [✓] Progress indicator (spinner)
   * [ ] Leave last screen in scrollback buffer on exit
   * [ ] Second status bar with keyboard commands
   * [ ] Display number of hidden files
@@ -45,20 +45,3 @@
   * [ ] Build macOS, linux binaries in CI
   * [ ] asciinema demo?
   * [ ] man page
-
-
-# General architecture
-
-## TerminalView (term.go)
-- Get user input events
-- Draw chars on injected tcell.Screen
-
-## Presenter (presenter.go)
-- Subscribe to FileTree change events
-- Update representation of Treemap
-- Notify View of new Treemap representation
-
-## FileTreeModel (TODO? presenter keeps state right now and it works fine)
-- Read filesystem information
-- Update FileTree representation
-- Notify subsribers of FileTree changes

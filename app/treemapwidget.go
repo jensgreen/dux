@@ -1,8 +1,6 @@
 package app
 
 import (
-	"strings"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
@@ -19,6 +17,7 @@ type TreemapWidget struct {
 	commands chan<- dux.Command
 
 	view         views.View
+	label        *FileLabel
 	childWidgets []*TreemapWidget
 
 	views.WidgetWatchers
@@ -28,31 +27,41 @@ func (tv *TreemapWidget) SetState(state dux.State) {
 	tv.appState = state
 }
 
-func (tv *TreemapWidget) updateWidgets(treemap intTreemap) {
+func (tv *TreemapWidget) updateWidgets(isRoot bool) {
+	treemap := tv.treemap
+	
+	tv.label.SetFile(treemap.File)
+	tv.label.SetIsRoot(isRoot)
+	tv.label.Select(tv.isSelected())
+	tv.setLabelView(tv.view)
+
 	widgets := make([]*TreemapWidget, len(treemap.Children))
 	for i, child := range treemap.Children {
+		label := NewFileLabel()
 		w := &TreemapWidget{
 			width:    child.Rect.X.Hi - child.Rect.X.Lo,
 			height:   child.Rect.Y.Hi - child.Rect.Y.Lo,
 			appState: tv.appState,
 			commands: tv.commands,
 			treemap:  child,
+			label:    label,
 		}
+		w.label.SetFile(w.treemap.File)
+		w.label.Select(w.isSelected())
 		w.SetView(tv.view)
 		widgets[i] = w
 	}
 	for _, w := range widgets {
-		w.updateWidgets(w.treemap)
+		w.updateWidgets(isRoot)
 	}
-	tv.treemap = treemap
 	tv.childWidgets = widgets
 }
 
 func (tv *TreemapWidget) Draw() {
-	tv.view.Clear()
-	treemap := snapRoundTreemap(tv.appState.Treemap)
-	tv.updateWidgets(treemap)
 	isRoot := true
+	tv.view.Clear()
+	tv.treemap = snapRoundTreemap(tv.appState.Treemap)
+	tv.updateWidgets(isRoot)
 	tv.draw(isRoot)
 }
 
@@ -67,6 +76,7 @@ func (tv *TreemapWidget) Resize() {
 	w, h := tv.view.Size()
 	tv.width = w
 	tv.height = h
+	tv.label.Resize()
 	tv.PostEventWidgetResize(tv)
 }
 
@@ -92,6 +102,22 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 
 func (tv *TreemapWidget) SetView(view views.View) {
 	tv.view = view
+	tv.setLabelView(view)
+}
+
+func (tv *TreemapWidget) setLabelView(view views.View) {
+	x := tv.treemap.Rect.X.Lo + 1
+	y := tv.treemap.Rect.Y.Lo
+	height := 1
+
+	width, _ := tv.label.Size()
+	availWidth := tv.treemap.Rect.X.Length() - 2 - 1 // FIXME -1 because not half-open any more
+	if width > availWidth {
+		width = availWidth
+	}
+
+	v := views.NewViewPort(view, x, y, width, height)
+	tv.label.SetView(v)
 }
 
 func (tv *TreemapWidget) Size() (int, int) {
@@ -138,67 +164,10 @@ func (tv *TreemapWidget) drawBox(rect z2.Rect) {
 }
 
 func (tv *TreemapWidget) drawSelf(isRoot bool) {
-	f := tv.treemap.File
-	rect := tv.closeHalfOpen(tv.treemap.Rect)
 	// log.Printf("Drawing %s at %v (rect: %+v)", f.Path, rect, tm.Rect)
+	rect := tv.closeHalfOpen(tv.treemap.Rect)
 	tv.drawBox(rect)
-	tv.drawLabel(rect, f, isRoot)
-}
-
-func (tv *TreemapWidget) drawLabel(rect z2.Rect, f files.File, isRoot bool) {
-	xrangeLabel := z2.Interval{
-		Lo: rect.X.Lo + 1, // don't draw on left corner
-		Hi: rect.X.Hi,
-	}
-
-	label := f.Name()
-	if isRoot {
-		label = f.Path
-	}
-
-	style := tcell.StyleDefault
-	if tv.isSelected() {
-		label = "* " + label
-		style = style.Bold(true)
-	}
-
-	if f.IsDir {
-		if !strings.HasSuffix(label, "/") {
-			// avoid showing for example "/" as "//"
-			label += "/"
-		}
-		style = style.Foreground(tcell.ColorBlue)
-	}
-
-	// apply styling to name part only
-	xrangeName := xrangeLabel
-	if len(label) < xrangeName.Hi-xrangeName.Lo {
-		xrangeName.Hi = xrangeName.Lo + len(label)
-	}
-	// draw disk usage in renaming range, if possible
-	xrangeSize := z2.Interval{
-		Lo: xrangeName.Hi,
-		Hi: xrangeLabel.Hi,
-	}
-	y := rect.Lo().Y
-	tv.drawString(xrangeName, y, label, nil, style) // different when dir
-	humanSize := " " + files.HumanizeIEC(f.Size)
-	if xrangeSize.Hi >= xrangeSize.Lo+len(humanSize) {
-		tv.drawString(xrangeSize, y, humanSize, nil, tcell.StyleDefault)
-	}
-}
-
-// drawString draws the provided string on row y and in cols given by the open interval xrange,
-// truncating the string if necessary
-func (tv *TreemapWidget) drawString(xrange z2.Interval, y int, s string, combc []rune, style tcell.Style) {
-	i := 0
-	for x := xrange.Lo; x < xrange.Hi; x++ {
-		if i == len(s) {
-			break
-		}
-		tv.view.SetContent(x, y, rune(s[i]), combc, style)
-		i++
-	}
+	tv.label.Draw()
 }
 
 func (tv *TreemapWidget) isSelected() bool {
@@ -206,8 +175,10 @@ func (tv *TreemapWidget) isSelected() bool {
 }
 
 func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
+	label := NewFileLabel() 
 	tv := &TreemapWidget{
 		commands: commands,
+		label:    label,
 	}
 	return tv
 }

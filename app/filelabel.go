@@ -77,28 +77,32 @@ func (fl *FileLabel) SetIsRoot(isRoot bool) {
 }
 
 func (fl *FileLabel) update() {
-	label := fl.file.Name()
-	if fl.isRoot {
-		label = fl.file.Path
-	}
-
+	b := strings.Builder{}
 	style := tcell.StyleDefault
+
 	if fl.isSelected {
-		label = string('●') + " " + label
+		b.WriteString("● ")
 		style = style.Italic(true).Foreground(tcell.ColorYellow).Bold(true)
 	}
 
+	if fl.isRoot {
+		b.WriteString(fl.file.Path)
+	} else {
+		b.WriteString(fl.file.Name())
+	}
+
 	if fl.file.IsDir {
-		if !strings.HasSuffix(label, "/") {
+		if !strings.HasSuffix(fl.file.Path, "/") {
 			// avoid showing for example "/" as "//"
-			label += "/"
+			b.WriteRune('/')
 		}
 		if !fl.isSelected {
 			style = style.Foreground(tcell.ColorBlue)
 		}
 	}
 
-	fl.nameText.SetText(label)
+	name := b.String()
+	fl.nameText.SetText(name)
 	fl.sizeText.SetText(" " + files.HumanizeIEC(fl.file.Size))
 
 	fl.nameText.SetStyle(style)

@@ -84,8 +84,8 @@ func (fl *FileLabel) update() {
 
 	style := tcell.StyleDefault
 	if fl.isSelected {
-		label = "* " + label
-		style = style.Background(tcell.ColorBlue)
+		label = string('●') + " " + label
+		style = style.Italic(true).Foreground(tcell.ColorYellow).Bold(true)
 	}
 
 	if fl.file.IsDir {
@@ -98,13 +98,17 @@ func (fl *FileLabel) update() {
 		}
 	}
 
-	// fl.nameText.SetStyle(tcell.StyleDefault.Background(tcell.ColorPurple).Foreground(tcell.ColorBlack))
-	fl.nameText.SetStyle(style)
 	fl.nameText.SetText(label)
+	fl.sizeText.SetText(" " + files.HumanizeIEC(fl.file.Size))
 
-	humanSize := files.HumanizeIEC(fl.file.Size)
-	// fl.sizeText.SetStyle(tcell.StyleDefault.Background(tcell.ColorRed).Foreground(tcell.ColorBlack))
-	fl.sizeText.SetText(" " + humanSize)
+	fl.nameText.SetStyle(style)
+	if fl.isSelected {
+		noItalics := style.Italic(false)
+		fl.nameText.SetStyleAt(0, noItalics)
+		fl.sizeText.SetStyle(noItalics)
+	} else {
+		fl.sizeText.SetStyle(tcell.StyleDefault)
+	}
 }
 
 func NewFileLabel() *FileLabel {

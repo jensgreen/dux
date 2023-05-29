@@ -32,23 +32,23 @@ func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 	tv.label.SetIsRoot(isRoot)
 	tv.label.Select(tv.isSelected())
 	tv.setLabelView(tv.view)
+	tv.box.Select(tv.isSelected())
 	tv.setBoxView(tv.view)
 
 	widgets := make([]*TreemapWidget, len(treemap.Children))
 	for i, child := range treemap.Children {
-		box := NewBox()
-		label := NewFileLabel()
 		w := &TreemapWidget{
 			width:    child.Rect.X.Hi - child.Rect.X.Lo,
 			height:   child.Rect.Y.Hi - child.Rect.Y.Lo,
 			appState: tv.appState,
 			commands: tv.commands,
 			treemap:  child,
-			box:      box,
-			label:    label,
+			box:      NewBox(),
+			label:    NewFileLabel(),
 		}
 		w.label.SetFile(w.treemap.File)
 		w.label.Select(w.isSelected())
+		w.box.Select(w.isSelected())
 		w.SetView(tv.view)
 		widgets[i] = w
 	}

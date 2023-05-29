@@ -95,3 +95,10 @@ func (cmd Navigate) Execute(state State) State {
 	}
 	return state
 }
+
+type TogglePause struct{}
+
+func (cmd TogglePause) Execute(state State) State {
+	state.Pause = !state.Pause
+	return state
+}

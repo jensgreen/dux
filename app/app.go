@@ -91,6 +91,8 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 			app.commands <- dux.IncreaseMaxDepth{}
 		case '-':
 			app.commands <- dux.DecreaseMaxDepth{}
+		case ' ':
+			app.commands <- dux.TogglePause{}
 		}
 	case tcell.KeyLeft:
 		app.commands <- dux.Navigate{Direction: nav.DirectionLeft}

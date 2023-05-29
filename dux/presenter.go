@@ -77,27 +77,37 @@ func (p *Presenter) Loop() {
 	}
 }
 
-func (p *Presenter) tick() {
+func (p *Presenter) pollEvent() []error {
 	var errs []error
-	select {
-	case cmd := <-p.Commands:
+	if p.state.Pause {
+		cmd := <-p.Commands
 		p.state = p.processCommand(cmd)
-	case event, ok := <-p.FileEvents:
-		if !ok {
-			// when closed, never select this channel again
-			p.FileEvents = nil
-			p.state.IsWalkingFiles = false
-			break
+	} else {
+		select {
+		case cmd := <-p.Commands:
+			p.state = p.processCommand(cmd)
+		case event, ok := <-p.FileEvents:
+			if !ok {
+				// when closed, never select this channel again
+				p.FileEvents = nil
+				p.state.IsWalkingFiles = false
+				break
+			}
+			if event.Error != nil {
+				errs = append(errs, event.Error)
+				break
+			}
+			f := normalize(event.File)
+			log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
+			p.add(f)
+			p.state.TotalFiles = len(p.pathLookup)
 		}
-		if event.Error != nil {
-			errs = append(errs, event.Error)
-			break
-		}
-		f := normalize(event.File)
-		log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
-		p.add(f)
-		p.state.TotalFiles = len(p.pathLookup)
 	}
+	return errs
+}
+
+func (p *Presenter) tick() {
+	errs := p.pollEvent()
 
 	if p.root != nil {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, p.state.TreemapSize.AsR2())

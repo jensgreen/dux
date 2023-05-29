@@ -4,16 +4,13 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
-	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/treemap"
-	"github.com/jensgreen/dux/z2"
 )
 
 type TreemapWidget struct {
 	width    int
 	height   int
 	appState dux.State
-	treemap  intTreemap
+	treemap  z2treemap
 	commands chan<- dux.Command
 
 	view         views.View
@@ -64,7 +61,7 @@ func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 func (tv *TreemapWidget) Draw() {
 	isRoot := true
 	tv.view.Clear()
-	tv.treemap = snapRoundTreemap(tv.appState.Treemap)
+	tv.treemap = newZ2Treemap(tv.appState.Treemap)
 	tv.updateWidgets(isRoot)
 	tv.draw(isRoot)
 }
@@ -158,29 +155,4 @@ func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
 		box:      box,
 	}
 	return tv
-}
-
-// snapRoundTreemap rounds float coordinates in a Treemap to
-// discrete coordinates in an IntTreemap
-func snapRoundTreemap(tm *treemap.Treemap) intTreemap {
-	children := make([]intTreemap, len(tm.Children))
-	for i, child := range tm.Children {
-		children[i] = snapRoundTreemap(child)
-	}
-
-	return intTreemap{
-		File:     tm.File,
-		Rect:     z2.SnapRoundRect(tm.Rect),
-		Children: children,
-	}
-}
-
-type intTreemap struct {
-	File     files.File
-	Rect     z2.Rect
-	Children []intTreemap
-}
-
-func (itm *intTreemap) Path() string {
-	return itm.File.Path
 }

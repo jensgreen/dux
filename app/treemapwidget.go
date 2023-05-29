@@ -53,7 +53,7 @@ func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 		widgets[i] = w
 	}
 	for _, w := range widgets {
-		w.updateWidgets(isRoot)
+		w.updateWidgets(false)
 	}
 	tv.childWidgets = widgets
 }

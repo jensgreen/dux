@@ -17,6 +17,7 @@ type TreemapWidget struct {
 	commands chan<- dux.Command
 
 	view         views.View
+	box          *Box
 	label        *FileLabel
 	childWidgets []*TreemapWidget
 
@@ -29,14 +30,16 @@ func (tv *TreemapWidget) SetState(state dux.State) {
 
 func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 	treemap := tv.treemap
-	
+
 	tv.label.SetFile(treemap.File)
 	tv.label.SetIsRoot(isRoot)
 	tv.label.Select(tv.isSelected())
 	tv.setLabelView(tv.view)
+	tv.setBoxView(tv.view)
 
 	widgets := make([]*TreemapWidget, len(treemap.Children))
 	for i, child := range treemap.Children {
+		box := NewBox()
 		label := NewFileLabel()
 		w := &TreemapWidget{
 			width:    child.Rect.X.Hi - child.Rect.X.Lo,
@@ -44,6 +47,7 @@ func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 			appState: tv.appState,
 			commands: tv.commands,
 			treemap:  child,
+			box:      box,
 			label:    label,
 		}
 		w.label.SetFile(w.treemap.File)
@@ -102,7 +106,18 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 
 func (tv *TreemapWidget) SetView(view views.View) {
 	tv.view = view
+	tv.setBoxView(view)
 	tv.setLabelView(view)
+}
+
+func (tv *TreemapWidget) setBoxView(view views.View) {
+	rect := tv.treemap.Rect
+	tv.box.SetView(views.NewViewPort(view,
+		rect.X.Lo,
+		rect.Y.Lo,
+		rect.X.Length(),
+		rect.Y.Length(),
+	))
 }
 
 func (tv *TreemapWidget) setLabelView(view views.View) {
@@ -111,7 +126,8 @@ func (tv *TreemapWidget) setLabelView(view views.View) {
 	height := 1
 
 	width, _ := tv.label.Size()
-	availWidth := tv.treemap.Rect.X.Length() - 2 - 1 // FIXME -1 because not half-open any more
+	cornerSize := 1
+	availWidth := tv.treemap.Rect.X.Length() - 2*cornerSize
 	if width > availWidth {
 		width = availWidth
 	}
@@ -124,49 +140,8 @@ func (tv *TreemapWidget) Size() (int, int) {
 	return tv.width, tv.height
 }
 
-func (tv *TreemapWidget) closeHalfOpen(rect z2.Rect) z2.Rect {
-	// Hi is exclusive (half-open range)
-	if rect.X.Hi > rect.X.Lo {
-		rect.X.Hi--
-	}
-	if rect.Y.Hi > rect.Y.Lo {
-		rect.Y.Hi--
-	}
-	return rect
-}
-
-func (tv *TreemapWidget) drawBox(rect z2.Rect) {
-	lo := rect.Lo()
-	hi := rect.Hi()
-
-	// Upper edge
-	style := tcell.StyleDefault
-	for x := lo.X + 1; x < hi.X; x++ {
-		tv.view.SetContent(x, lo.Y, tcell.RuneHLine, nil, style)
-	}
-	// Lower edge
-	for x := lo.X + 1; x < hi.X; x++ {
-		tv.view.SetContent(x, hi.Y, tcell.RuneHLine, nil, style)
-	}
-	// Left edge
-	for y := lo.Y + 1; y < hi.Y; y++ {
-		tv.view.SetContent(lo.X, y, tcell.RuneVLine, nil, style)
-	}
-	// Right edge
-	for y := lo.Y + 1; y < hi.Y; y++ {
-		tv.view.SetContent(hi.X, y, tcell.RuneVLine, nil, style)
-	}
-	// Corners, clockwise from lower right
-	tv.view.SetContent(hi.X, hi.Y, tcell.RuneLRCorner, nil, style)
-	tv.view.SetContent(lo.X, hi.Y, tcell.RuneLLCorner, nil, style)
-	tv.view.SetContent(lo.X, lo.Y, tcell.RuneULCorner, nil, style)
-	tv.view.SetContent(hi.X, lo.Y, tcell.RuneURCorner, nil, style)
-}
-
 func (tv *TreemapWidget) drawSelf(isRoot bool) {
-	// log.Printf("Drawing %s at %v (rect: %+v)", f.Path, rect, tm.Rect)
-	rect := tv.closeHalfOpen(tv.treemap.Rect)
-	tv.drawBox(rect)
+	tv.box.Draw()
 	tv.label.Draw()
 }
 
@@ -175,10 +150,12 @@ func (tv *TreemapWidget) isSelected() bool {
 }
 
 func NewTreemapWidget(commands chan<- dux.Command) *TreemapWidget {
-	label := NewFileLabel() 
+	label := NewFileLabel()
+	box := NewBox()
 	tv := &TreemapWidget{
 		commands: commands,
 		label:    label,
+		box:      box,
 	}
 	return tv
 }

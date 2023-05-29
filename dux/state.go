@@ -16,6 +16,7 @@ type State struct {
 	AppSize        z2.Point
 	TotalFiles     int
 	IsWalkingFiles bool
+	Pause          bool
 	Refresh        *sync.Once
 }
 

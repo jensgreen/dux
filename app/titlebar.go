@@ -19,7 +19,9 @@ type TitleBar struct {
 }
 
 func (tb *TitleBar) SetState(state dux.State) {
-	tb.spinner.Tick()
+	if !state.Pause {
+		tb.spinner.Tick()
+	}
 	tb.updateText(state)
 	tb.PostEventWidgetContent(tb)
 }
@@ -42,7 +44,9 @@ func (tb *TitleBar) updateLeft(state dux.State, f files.File) {
 		files.HumanizeIEC(f.Size),
 		state.TotalFiles,
 	)
-	if state.IsWalkingFiles {
+	if state.Pause {
+		left += " PAUSED"
+	} else if state.IsWalkingFiles {
 		left += " " + tb.spinner.String()
 	}
 	tb.textBar.SetLeft(left, tb.style)

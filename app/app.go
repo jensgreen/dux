@@ -77,6 +77,7 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 	switch key {
 	case tcell.KeyRune:
 		switch ev.Rune() {
+		// navigation
 		case 'h':
 			app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
 		case 'j':
@@ -85,15 +86,23 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 			app.commands <- dux.Navigate{Direction: nav.DirectionUp}
 		case 'l':
 			app.commands <- dux.Navigate{Direction: nav.DirectionRight}
-		case 'q':
-			app.commands <- dux.Quit{}
+		// depth
 		case '+':
 			app.commands <- dux.IncreaseMaxDepth{}
 		case '-':
 			app.commands <- dux.DecreaseMaxDepth{}
+		// zoom
+		case 'i':
+			app.commands <- dux.ZoomIn{}
+		case 'o':
+			app.commands <- dux.ZoomOut{}
+		// misc
 		case ' ':
 			app.commands <- dux.TogglePause{}
+		case 'q':
+			app.commands <- dux.Quit{}
 		}
+	// alt. navigation
 	case tcell.KeyLeft:
 		app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
 	case tcell.KeyRight:
@@ -106,6 +115,7 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 		app.commands <- dux.Navigate{Direction: nav.DirectionIn}
 	case tcell.KeyBackspace2:
 		app.commands <- dux.Navigate{Direction: nav.DirectionOut}
+	// misc
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		app.commands <- dux.Quit{}
 	case tcell.KeyCtrlL:

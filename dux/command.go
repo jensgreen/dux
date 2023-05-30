@@ -102,3 +102,21 @@ func (cmd TogglePause) Execute(state State) State {
 	state.Pause = !state.Pause
 	return state
 }
+
+type ZoomIn struct{}
+
+// TODO implement a zoom stack
+func (cmd ZoomIn) Execute(state State) State {
+	state.Zoom = state.Selection
+	return state
+}
+
+type ZoomOut struct{}
+
+func (cmd ZoomOut) Execute(state State) State {
+	if state.Zoom != nil {
+		state.Selection = state.Zoom
+		state.Zoom = state.Zoom.Parent
+	}
+	return state
+}

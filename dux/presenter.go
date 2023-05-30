@@ -18,6 +18,7 @@ type Presenter struct {
 	state       State
 	root        *files.FileTree
 	pathLookup  map[string]*files.FileTree
+	fileCount   map[string]int
 }
 
 func NewPresenter(
@@ -34,6 +35,7 @@ func NewPresenter(
 		state:       initialState,
 		Tiler:       tiler,
 		pathLookup:  make(map[string]*files.FileTree),
+		fileCount:   make(map[string]int),
 	}
 }
 
@@ -67,6 +69,7 @@ func (p *Presenter) bubbleUp(f files.File) {
 		}
 		// log.Printf("Bubbling up %v to %v", f, parent.File)
 		parent.File.Size += f.Size
+		p.fileCount[parent.File.Path] += 1
 		path = parentPath
 	}
 }
@@ -100,7 +103,6 @@ func (p *Presenter) pollEvent() []error {
 			f := normalize(event.File)
 			log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
 			p.add(f)
-			p.state.TotalFiles = len(p.pathLookup)
 		}
 	}
 	return errs
@@ -121,6 +123,9 @@ func (p *Presenter) tick() {
 
 		if p.state.Selection != nil {
 			p.state.Selection = rootTreemap.FindSubTreemap(p.state.Selection.Path())
+			p.state.TotalFiles = p.fileCount[p.state.Selection.Path()]
+		} else {
+			p.state.TotalFiles = p.fileCount[rootFileTree.File.Path]
 		}
 
 		if p.state.Zoom != nil {

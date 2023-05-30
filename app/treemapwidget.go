@@ -92,7 +92,11 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 				}
 			}
 			// I contain the point, but none of my children do: stop looking
-			tv.commands <- dux.Select{Path: tv.treemap.Path()}
+			if tv.appState.Selection != nil && tv.appState.Selection.Path() == tv.treemap.Path() {
+				tv.commands <- dux.ZoomIn{}
+			} else {
+				tv.commands <- dux.Select{Path: tv.treemap.Path()}
+			}
 			return true
 		} else {
 			return false

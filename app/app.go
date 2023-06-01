@@ -40,11 +40,7 @@ func (app *App) Run() error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if app.screen != nil {
-			app.screen.Fini()
-		}
-	}()
+	defer app.cleanup()
 
 	go signalHandler(app.commands)
 	app.startEventLoop()
@@ -184,6 +180,7 @@ func (app *App) Size() (int, int) {
 // updateLoop polls for state updates and the quit signal, both sent by the presenter
 func (app *App) updateLoop() {
 	defer app.wg.Done()
+	defer app.cleanupAndRepanic()
 loop:
 	for {
 		event := <-app.stateEvents
@@ -216,6 +213,7 @@ loop:
 // but no direct state updates.
 func (app *App) eventLoop() {
 	defer app.wg.Done()
+	defer app.cleanupAndRepanic()
 	screen := app.screen
 loop:
 	for {
@@ -270,6 +268,22 @@ func (app *App) init() error {
 	app.screen = screen
 	app.SetView(screen)
 	return nil
+}
+
+func (app *App) cleanup() {
+	if app.screen != nil {
+		app.screen.Fini()
+	}
+}
+
+// cleanupAndRepanic restores state of the terminal, and then just repanics to
+// kill all other goroutines.  If another goroutine panics, the terminal will
+// still be messed up, so a cleaner shutdown on panic would be desirable.
+func (app *App) cleanupAndRepanic() {
+	if e := recover(); e != nil {
+		app.cleanup()
+		panic(e)
+	}
 }
 
 // printErrors prints error messages to stderr in the Normal Screen Buffer. The

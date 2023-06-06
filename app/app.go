@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -18,6 +19,8 @@ import (
 )
 
 type App struct {
+	ctx context.Context
+
 	path      string
 	prevState *dux.State
 
@@ -32,6 +35,7 @@ type App struct {
 
 	stateEvents <-chan dux.StateEvent
 	commands    chan<- dux.Command
+	tcellEvents chan tcell.Event
 }
 
 func (app *App) Run() error {
@@ -59,11 +63,15 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventResize:
 		w, h := ev.Size()
 		_, th := app.titleBar.Size()
-		app.commands <- dux.Resize{
+		select {
+		case <-app.ctx.Done():
+			return true
+		case app.commands <- dux.Resize{
 			AppSize:     z2.Point{X: w, Y: h},
 			TreemapSize: z2.Point{X: w, Y: h - th},
+		}:
+			return true
 		}
-		return true
 	}
 	return app.widget.HandleEvent(ev)
 }
@@ -71,54 +79,62 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 func (app *App) handleKey(ev *tcell.EventKey) bool {
 	mod, key, ch := ev.Modifiers(), ev.Key(), ev.Rune()
 	log.Printf("EventKey Modifiers: %d Key: %d Rune: %d", mod, key, ch)
+	var cmd dux.Command
 	switch key {
 	case tcell.KeyRune:
 		switch ev.Rune() {
 		// navigation
 		case 'h':
-			app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
+			cmd = dux.Navigate{Direction: nav.DirectionLeft}
 		case 'j':
-			app.commands <- dux.Navigate{Direction: nav.DirectionDown}
+			cmd = dux.Navigate{Direction: nav.DirectionDown}
 		case 'k':
-			app.commands <- dux.Navigate{Direction: nav.DirectionUp}
+			cmd = dux.Navigate{Direction: nav.DirectionUp}
 		case 'l':
-			app.commands <- dux.Navigate{Direction: nav.DirectionRight}
+			cmd = dux.Navigate{Direction: nav.DirectionRight}
 		// depth
 		case '+':
-			app.commands <- dux.IncreaseMaxDepth{}
+			cmd = dux.IncreaseMaxDepth{}
 		case '-':
-			app.commands <- dux.DecreaseMaxDepth{}
+			cmd = dux.DecreaseMaxDepth{}
 		// zoom
 		case 'i':
-			app.commands <- dux.ZoomIn{}
+			cmd = dux.ZoomIn{}
 		case 'o':
-			app.commands <- dux.ZoomOut{}
+			cmd = dux.ZoomOut{}
 		// misc
 		case ' ':
-			app.commands <- dux.TogglePause{}
+			cmd = dux.TogglePause{}
 		case 'q':
-			app.commands <- dux.Quit{}
+			cmd = dux.Quit{}
 		}
 	// alt. navigation
 	case tcell.KeyLeft:
-		app.commands <- dux.Navigate{Direction: nav.DirectionLeft}
+		cmd = dux.Navigate{Direction: nav.DirectionLeft}
 	case tcell.KeyRight:
-		app.commands <- dux.Navigate{Direction: nav.DirectionRight}
+		cmd = dux.Navigate{Direction: nav.DirectionRight}
 	case tcell.KeyUp:
-		app.commands <- dux.Navigate{Direction: nav.DirectionUp}
+		cmd = dux.Navigate{Direction: nav.DirectionUp}
 	case tcell.KeyDown:
-		app.commands <- dux.Navigate{Direction: nav.DirectionDown}
+		cmd = dux.Navigate{Direction: nav.DirectionDown}
 	case tcell.KeyEnter:
-		app.commands <- dux.Navigate{Direction: nav.DirectionIn}
+		cmd = dux.Navigate{Direction: nav.DirectionIn}
 	case tcell.KeyBackspace2:
-		app.commands <- dux.Navigate{Direction: nav.DirectionOut}
+		cmd = dux.Navigate{Direction: nav.DirectionOut}
 	// misc
 	case tcell.KeyEscape, tcell.KeyCtrlC:
-		app.commands <- dux.Quit{}
+		cmd = dux.Quit{}
 	case tcell.KeyCtrlL:
-		app.commands <- dux.Refresh{}
+		cmd = dux.Refresh{}
 	case tcell.KeyCtrlZ:
-		app.commands <- dux.SendToBackground{}
+		cmd = dux.SendToBackground{}
+	}
+
+	if cmd != nil {
+		select {
+		case <-app.ctx.Done():
+		case app.commands <- cmd:
+		}
 	}
 	// key events are always consumed here at the top level
 	return true
@@ -186,30 +202,34 @@ func (app *App) updateLoop() {
 	defer app.cleanupAndRepanic()
 loop:
 	for {
-		event := <-app.stateEvents
-		if event.State.Quit {
-			// TODO we actually the last (and only the last) alternate screen
-			// to end up in the scrollback buffer
-			app.clearAlternateScreen()
-			app.terminateEventLoop()
+		select {
+		case <-app.ctx.Done():
 			break loop
-		}
-		app.printErrors(event.Errors)
+		case event := <-app.stateEvents:
+			if event.State.Quit {
+				// TODO we actually the last (and only the last) alternate screen
+				// to end up in the scrollback buffer
+				app.clearAlternateScreen()
+				app.terminateEventLoop()
+				break loop
+			}
+			app.printErrors(event.Errors)
 
-		if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
-			app.resize(event.State.AppSize.X, event.State.AppSize.Y)
-		}
+			if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
+				app.resize(event.State.AppSize.X, event.State.AppSize.Y)
+			}
 
-		if event.State.Treemap != nil {
-			app.SetState(event.State)
-			app.Draw()
-		}
+			if event.State.Treemap != nil {
+				app.SetState(event.State)
+				app.Draw()
+			}
 
-		if event.State.Refresh != nil {
-			event.State.Refresh.Do(app.refresh)
-		}
-		if event.State.SendToBackground != nil {
-			event.State.SendToBackground.Do(app.sendToBackground)
+			if event.State.Refresh != nil {
+				event.State.Refresh.Do(app.refresh)
+			}
+			if event.State.SendToBackground != nil {
+				event.State.SendToBackground.Do(app.sendToBackground)
+			}
 		}
 	}
 }
@@ -219,7 +239,6 @@ loop:
 func (app *App) eventLoop() {
 	defer app.wg.Done()
 	defer app.cleanupAndRepanic()
-	screen := app.screen
 loop:
 	for {
 		var widget views.Widget
@@ -227,18 +246,23 @@ loop:
 			break
 		}
 
-		ev := screen.PollEvent()
-		switch ev.(type) {
-		case *terminateEventLoopEvent:
+		select {
+		case <-app.ctx.Done():
 			break loop
-		default:
-			app.HandleEvent(ev)
+		case ev := <-app.tcellEvents:
+			switch ev.(type) {
+			case *terminateEventLoopEvent:
+				break loop
+			default:
+				app.HandleEvent(ev)
+			}
 		}
 	}
 }
 
 func (app *App) startEventLoop() {
 	app.wg.Add(1)
+	go app.screen.ChannelEvents(app.tcellEvents, app.ctx.Done())
 	go app.eventLoop()
 }
 
@@ -339,7 +363,7 @@ func (app *App) sendToBackground() {
 	app.Draw()
 }
 
-func NewApp(path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {
+func NewApp(ctx context.Context, path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {
 	tv := NewTreemapWidget(commands)
 	title := NewTitleBar(commands)
 
@@ -355,6 +379,8 @@ func NewApp(path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.
 		treemap:     tv,
 		stateEvents: stateEvents,
 		commands:    commands,
+		tcellEvents: make(chan tcell.Event),
+		ctx: ctx,
 	}
 
 	return app

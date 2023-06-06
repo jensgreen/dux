@@ -1,6 +1,7 @@
 package files
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -29,13 +30,14 @@ type FileEvent struct {
 	Error error
 }
 
-func WalkDir(path string, fileStream chan<- FileEvent, readDir ReadDir) {
+func WalkDir(ctx context.Context, path string, fileEvents chan<- FileEvent, readDir ReadDir) {
+	defer close(fileEvents)
 	rootInfo, err := os.Stat(path)
 	if err != nil {
-		fileStream <- FileEvent{Error: err}
+		send(ctx, fileEvents, FileEvent{Error: err})
 	} else if !rootInfo.IsDir() {
 		// TODO handle file
-		fileStream <- FileEvent{Error: syscall.ENOTDIR}
+		send(ctx, fileEvents, FileEvent{Error: syscall.ENOTDIR})
 	} else {
 		f := File{
 			Path:  path,
@@ -43,17 +45,16 @@ func WalkDir(path string, fileStream chan<- FileEvent, readDir ReadDir) {
 			IsDir: true,
 		}
 		log.Println("Sending FileEvent for", f.Path)
-		fileStream <- FileEvent{File: f}
-		walkDir(path, f, fileStream, readDir)
+		send(ctx, fileEvents, FileEvent{File: f})
+		walkDir(ctx, path, f, fileEvents, readDir)
 	}
 	log.Println("Closing FileEvent channel")
-	close(fileStream)
 }
 
-func walkDir(path string, parent File, fileStream chan<- FileEvent, readDir ReadDir) {
+func walkDir(ctx context.Context, path string, parent File, fileEvents chan<- FileEvent, readDir ReadDir) {
 	entries, err := readDir(path)
 	if err != nil {
-		fileStream <- FileEvent{Error: err}
+		send(ctx, fileEvents, FileEvent{Error: err})
 	}
 
 	for _, entry := range entries {
@@ -62,7 +63,7 @@ func walkDir(path string, parent File, fileStream chan<- FileEvent, readDir Read
 		if !entry.IsDir() {
 			info, err := entry.Info()
 			if err != nil {
-				fileStream <- FileEvent{Error: err}
+				send(ctx, fileEvents, FileEvent{Error: err})
 				continue
 			} else {
 				size = info.Size()
@@ -74,9 +75,16 @@ func walkDir(path string, parent File, fileStream chan<- FileEvent, readDir Read
 			IsDir: entry.IsDir(),
 		}
 		log.Println("Sending FileEvent for", f.Path)
-		fileStream <- FileEvent{File: f}
+		send(ctx, fileEvents, FileEvent{File: f})
 		if f.IsDir {
-			walkDir(f.Path, f, fileStream, readDir)
+			walkDir(ctx, f.Path, f, fileEvents, readDir)
 		}
+	}
+}
+
+func send(ctx context.Context, ch chan<- FileEvent, ev FileEvent) {
+	select {
+	case <-ctx.Done():
+	case ch <- ev:
 	}
 }

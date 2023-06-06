@@ -1,6 +1,7 @@
 package files
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -25,7 +26,7 @@ func TestWalkDir_PropagatesReadDirError(t *testing.T) {
 		return nil, errors.New("foo")
 	}
 
-	WalkDir("", ch, errorReadDir)
+	WalkDir(context.Background(), "", ch, errorReadDir)
 
 	event := <-ch
 	assert.Error(t, event.Error)
@@ -37,7 +38,7 @@ func TestWalkDir_ClosesChannelWhenDone(t *testing.T) {
 		return make([]os.DirEntry, 0), nil
 	}
 
-	WalkDir("", ch, emptyReadDir)
+	WalkDir(context.Background(), "", ch, emptyReadDir)
 
 	_, ok := <-ch
 	assert.True(t, ok, "expected root dir")
@@ -48,7 +49,7 @@ func TestWalkDir_ClosesChannelWhenDone(t *testing.T) {
 func TestWalkDir_ProducesFileEventsIncludingRoot(t *testing.T) {
 	ch := make(chan FileEvent, 10)
 
-	WalkDir("../testdata/example/inner/nested", ch, os.ReadDir)
+	WalkDir(context.Background(), "../testdata/example/inner/nested", ch, os.ReadDir)
 
 	tests := []struct {
 		err  error
@@ -69,7 +70,7 @@ func TestWalkDir_ProducesFileEventsIncludingRoot(t *testing.T) {
 func TestWalkDir_ProducesFileEventsBreadthFirst(t *testing.T) {
 	ch := make(chan FileEvent, 10)
 
-	WalkDir("../testdata/example/inner", ch, os.ReadDir)
+	WalkDir(context.Background(), "../testdata/example/inner", ch, os.ReadDir)
 
 	tests := []string{
 		"../testdata/example/inner",
@@ -90,7 +91,7 @@ func TestWalkDir_ProducesFileEventsBreadthFirst(t *testing.T) {
 func TestWalkDir_SetsFileSize(t *testing.T) {
 	ch := make(chan FileEvent, 10)
 
-	WalkDir("../testdata/example/inner/nested", ch, os.ReadDir)
+	WalkDir(context.Background(), "../testdata/example/inner/nested", ch, os.ReadDir)
 
 	tests := []struct {
 		path string

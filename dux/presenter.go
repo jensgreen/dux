@@ -1,6 +1,7 @@
 package dux
 
 import (
+	"context"
 	"log"
 	"path/filepath"
 
@@ -12,6 +13,7 @@ import (
 )
 
 type Presenter struct {
+	ctx         context.Context
 	FileEvents  <-chan files.FileEvent
 	Commands    <-chan Command
 	stateEvents chan<- StateEvent
@@ -23,6 +25,7 @@ type Presenter struct {
 }
 
 func NewPresenter(
+	ctx context.Context,
 	fileEvents <-chan files.FileEvent,
 	commands <-chan Command,
 	stateEvents chan<- StateEvent,
@@ -30,6 +33,7 @@ func NewPresenter(
 	tiler tiling.Tiler,
 ) Presenter {
 	return Presenter{
+		ctx:         ctx,
 		FileEvents:  fileEvents,
 		Commands:    commands,
 		stateEvents: stateEvents,
@@ -84,10 +88,18 @@ func (p *Presenter) Loop() {
 func (p *Presenter) pollEvent() []error {
 	var errs []error
 	if p.state.Pause {
-		cmd := <-p.Commands
-		p.state = p.processCommand(cmd)
+		select {
+		case <-p.ctx.Done():
+			p.state.Quit = true
+			return nil
+		case cmd := <-p.Commands:
+			p.state = p.processCommand(cmd)
+		}
 	} else {
 		select {
+		case <-p.ctx.Done():
+			p.state.Quit = true
+			return nil
 		case cmd := <-p.Commands:
 			p.state = p.processCommand(cmd)
 		case event, ok := <-p.FileEvents:
@@ -110,6 +122,12 @@ func (p *Presenter) pollEvent() []error {
 }
 
 func (p *Presenter) tick() {
+	defer func() {
+		if p.state.Quit {
+			close(p.stateEvents)
+		}
+	}()
+
 	errs := p.pollEvent()
 
 	if p.root != nil {
@@ -154,11 +172,12 @@ func (p *Presenter) tick() {
 	}
 
 	log.Printf("Sending stateEvent")
-	p.stateEvents <- StateEvent{State: p.state, Errors: errs}
-	log.Printf("Sent stateEvent")
-
-	if p.state.Quit {
-		close(p.stateEvents)
+	select {
+	case <-p.ctx.Done():
+		p.state.Quit = true
+		return
+	case p.stateEvents <- StateEvent{State: p.state, Errors: errs}:
+		log.Printf("Sent stateEvent")
 	}
 }
 

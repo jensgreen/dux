@@ -1,6 +1,7 @@
 package dux
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,7 +27,7 @@ func Test_TickProducesStateEvents(t *testing.T) {
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 	close(fileEvents)
 
-	pres := NewPresenter(fileEvents, nil, stateEvents, State{}, nil)
+	pres := NewPresenter(context.Background(), fileEvents, nil, stateEvents, State{}, nil)
 	pres.tick()
 
 	stateEvent, ok := <-stateEvents
@@ -38,12 +39,12 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 	fileEvents := make(chan files.FileEvent)
 	commands := make(chan Command)
 	go func() {
-		files.WalkDir("../testdata/example/inner", fileEvents, os.ReadDir)
+		files.WalkDir(context.Background(), "../testdata/example/inner", fileEvents, os.ReadDir)
 		commands <- Quit{}
 	}()
 
 	stateEvents := make(chan StateEvent)
-	pres := NewPresenter(fileEvents, commands, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), fileEvents, commands, stateEvents, State{}, mockTiler{})
 	go pres.Loop()
 
 	for e := range stateEvents {
@@ -66,7 +67,7 @@ func Test_EmitsStateEventForRootOnEachFileEvent(t *testing.T) {
 	fileEvents <- files.FileEvent{File: child}
 	close(fileEvents)
 
-	pres := NewPresenter(fileEvents, commands, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), fileEvents, commands, stateEvents, State{}, mockTiler{})
 	pres.tick() // foo
 	pres.tick() // foo/bar
 	pres.tick() // closed
@@ -85,7 +86,7 @@ func Test_EmitsStateEventOnFileEvent(t *testing.T) {
 
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 
-	pres := NewPresenter(fileEvents, nil, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), fileEvents, nil, stateEvents, State{}, mockTiler{})
 	pres.tick()
 	_, ok := <-stateEvents
 	assert.True(t, ok, "no StateEvent sent")
@@ -94,7 +95,7 @@ func Test_EmitsStateEventOnFileEvent(t *testing.T) {
 func Test_QuitCommandUpdatesQuitState(t *testing.T) {
 	stateEvents := make(chan StateEvent, 1)
 	commands := make(chan Command, 1)
-	pres := NewPresenter(nil, commands, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), nil, commands, stateEvents, State{}, mockTiler{})
 	commands <- Quit{}
 	pres.tick()
 
@@ -104,7 +105,7 @@ func Test_QuitCommandUpdatesQuitState(t *testing.T) {
 }
 
 func Test_FirstAddedIsRoot(t *testing.T) {
-	pres := NewPresenter(nil, nil, nil, State{}, nil)
+	pres := NewPresenter(context.Background(), nil, nil, nil, State{}, nil)
 	f := files.File{Path: "foo"}
 	pres.add(f)
 
@@ -112,7 +113,7 @@ func Test_FirstAddedIsRoot(t *testing.T) {
 }
 
 func Test_AddChild(t *testing.T) {
-	pres := NewPresenter(nil, nil, nil, State{}, nil)
+	pres := NewPresenter(context.Background(), nil, nil, nil, State{}, nil)
 	foo := files.File{Path: "foo"}
 	bar := files.File{Path: "foo/bar"}
 	pres.add(foo)
@@ -175,7 +176,7 @@ func Test_AddBubblesUpSize(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			pres := NewPresenter(nil, nil, nil, State{}, nil)
+			pres := NewPresenter(context.Background(), nil, nil, nil, State{}, nil)
 			cleanFiles := make([]files.File, len(tt.files))
 			for j, f := range tt.files {
 				cleanFiles[j] = normalize(f)

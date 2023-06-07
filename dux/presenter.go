@@ -122,15 +122,31 @@ func (p *Presenter) tick() {
 		rootTreemap = treemap.New(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth, 0)
 
 		if p.state.Selection != nil {
-			p.state.Selection = rootTreemap.FindSubTreemap(p.state.Selection.Path())
-			p.state.TotalFiles = p.fileCount[p.state.Selection.Path()]
+			selection, err := rootTreemap.FindNode(p.state.Selection.Path())
+			if err != nil {
+				// selected node has been removed from the new treemap
+				// TODO select closest (grand)parent still remaining
+				p.state.Selection = nil
+				p.state.TotalFiles = p.fileCount[rootFileTree.File.Path]
+			} else {
+				p.state.Selection = selection
+				p.state.TotalFiles = p.fileCount[p.state.Selection.Path()]
+			}
 		} else {
 			p.state.TotalFiles = p.fileCount[rootFileTree.File.Path]
 		}
 
 		if p.state.Zoom != nil {
-			p.state.Zoom = rootTreemap.FindSubTreemap(p.state.Zoom.Path())
-			p.state.Treemap = p.state.Zoom
+			zoom, err := rootTreemap.FindNode(p.state.Zoom.Path())
+			if err != nil {
+				// selected zoom node has been removed from the new treemap
+				// TODO select closest (grand)parent still remaining
+				p.state.Zoom = nil
+				p.state.Treemap = rootTreemap
+			} else {
+				p.state.Zoom = zoom
+				p.state.Treemap = p.state.Zoom
+			}
 		} else {
 			p.state.Treemap = rootTreemap
 		}

@@ -1,6 +1,7 @@
 package treemap
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golang/geo/r1"
@@ -21,18 +22,18 @@ func (tm *Treemap) Path() string {
 	return tm.File.Path
 }
 
-func (tm *Treemap) FindSubTreemap(path string) *Treemap {
+func (tm *Treemap) FindNode(path string) (*Treemap, error) {
 	if path == tm.Path() {
-		return tm
+		return tm, nil
 	}
 
 	for _, c := range tm.Children {
 		if strings.HasPrefix(path, c.Path()) {
-			return c.FindSubTreemap(path)
+			return c.FindNode(path)
 		}
 	}
 
-	return nil
+	return nil, fmt.Errorf("no such node: %s", path)
 }
 
 func New(root files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int, depth int) *Treemap {

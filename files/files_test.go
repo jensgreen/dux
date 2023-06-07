@@ -4,6 +4,9 @@ import (
 	"errors"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Contents of testdata/ dir:
@@ -24,9 +27,8 @@ func TestWalkDir_PropagatesReadDirError(t *testing.T) {
 
 	WalkDir("", ch, errorReadDir)
 
-	if event := <-ch; event.Error == nil {
-		t.Error("expected error")
-	}
+	event := <-ch
+	assert.Error(t, event.Error)
 }
 
 func TestWalkDir_ClosesChannelWhenDone(t *testing.T) {
@@ -37,12 +39,10 @@ func TestWalkDir_ClosesChannelWhenDone(t *testing.T) {
 
 	WalkDir("", ch, emptyReadDir)
 
-	if _, ok := <-ch; !ok {
-		t.Fatalf("expected root dir")
-	}
-	if _, ok := <-ch; ok {
-		t.Error("expected closed channel")
-	}
+	_, ok := <-ch
+	assert.True(t, ok, "expected root dir")
+	_, ok = <-ch
+	assert.False(t, ok, "expected closed channel")
 }
 
 func TestWalkDir_ProducesFileEventsIncludingRoot(t *testing.T) {
@@ -60,15 +60,9 @@ func TestWalkDir_ProducesFileEventsIncludingRoot(t *testing.T) {
 
 	for _, test := range tests {
 		event, ok := <-ch
-		if !ok {
-			t.Fatalf("expected open channel")
-		}
-		if event.Error != test.err {
-			t.Fatalf("got error %+v", event.Error)
-		}
-		if event.File.Path != test.path {
-			t.Fatalf("expected %s got %s", test.path, event.File.Path)
-		}
+		require.True(t, ok)
+		assert.Equal(t, test.err, event.Error)
+		assert.Equal(t, test.path, event.File.Path)
 	}
 }
 
@@ -86,14 +80,9 @@ func TestWalkDir_ProducesFileEventsBreadthFirst(t *testing.T) {
 	}
 	for _, test := range tests {
 		result, ok := <-ch
-		if !ok {
-			t.Fatalf("channel is closed")
-		}
-		if result.Error != nil {
-			t.Fatalf("got error: %+v", result.Error)
-		}
-		if result.File.Path != test {
-			t.Errorf("expected %s, got %s", test, result.File.Path)
+		require.True(t, ok)
+		if assert.NoError(t, result.Error) {
+			assert.Equal(t, test, result.File.Path)
 		}
 	}
 }
@@ -113,15 +102,11 @@ func TestWalkDir_SetsFileSize(t *testing.T) {
 
 	for _, test := range tests {
 		event, ok := <-ch
+		require.True(t, ok)
 		f, err := event.File, event.Error
-		if !ok {
-			t.Fatalf("expected closed channel")
-		}
-		if err != nil {
-			t.Fatalf("got error %+v", err)
-		}
-		if !(f.Path == test.path && f.Size == test.size) {
-			t.Errorf("expected (%s %d), got (%s %d)", test.path, test.size, f.Path, f.Size)
+		if assert.NoError(t, err) {
+			assert.Equal(t, test.path, f.Path)
+			assert.Equal(t, test.size, f.Size)
 		}
 	}
 }

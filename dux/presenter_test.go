@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
 	"github.com/jensgreen/dux/treemap/tiling"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type mockTiler struct{}
@@ -19,7 +20,7 @@ func (t mockTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles
 	return make([]tiling.Tile, len(fileTree.Children)), r2.EmptyRect()
 }
 
-func Test_TickProducesstateEventEvent(t *testing.T) {
+func Test_TickProducesStateEvents(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 1)
 	stateEvents := make(chan StateEvent, 1)
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
@@ -29,13 +30,8 @@ func Test_TickProducesstateEventEvent(t *testing.T) {
 	pres.tick()
 
 	stateEvent, ok := <-stateEvents
-	if !ok {
-		t.Errorf("expected stateEvent")
-	}
-	gotPath := stateEvent.State.Treemap.Path()
-	if "foo" != gotPath {
-		t.Errorf("expected stateEvent for %v, got %v", "foo", gotPath)
-	}
+	require.True(t, ok)
+	assert.Equal(t, "foo", stateEvent.State.Treemap.Path())
 }
 
 func Test_WalkDirConcurrencyIntegration(t *testing.T) {
@@ -52,17 +48,14 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 
 	for e := range stateEvents {
 		f := e.State.Treemap.File
-		if !strings.Contains(f.Path, "../testdata/example/inner") {
-			t.Fail()
-		}
+		assert.Contains(t, f.Path, "../testdata/example/inner")
 	}
 
-	if _, ok := <-fileEvents; ok {
-		t.Errorf("expected closed channel")
-	}
+	_, ok := <-fileEvents
+	assert.False(t, ok, "expected closed channel")
 }
 
-func Test_EmitsstateEventForRootOnEachFileEvent(t *testing.T) {
+func Test_EmitsStateEventForRootOnEachFileEvent(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 2)
 	stateEvents := make(chan StateEvent, 4)
 	commands := make(chan Command, 1)
@@ -82,13 +75,11 @@ func Test_EmitsstateEventForRootOnEachFileEvent(t *testing.T) {
 
 	for event := range stateEvents {
 		path := event.State.Treemap.Path()
-		if path != "foo" {
-			t.Errorf("expected stateEvent for root %v, got %v", "foo", path)
-		}
+		assert.Equal(t, path, "foo", "expected StateEvent for root")
 	}
 }
 
-func Test_EmitsstateEventOnFileEvent(t *testing.T) {
+func Test_EmitsStateEventOnFileEvent(t *testing.T) {
 	fileEvents := make(chan files.FileEvent, 1)
 	stateEvents := make(chan StateEvent, 1)
 
@@ -96,9 +87,8 @@ func Test_EmitsstateEventOnFileEvent(t *testing.T) {
 
 	pres := NewPresenter(fileEvents, nil, stateEvents, State{}, mockTiler{})
 	pres.tick()
-	if _, ok := <-stateEvents; !ok {
-		t.Fail()
-	}
+	_, ok := <-stateEvents
+	assert.True(t, ok, "no StateEvent sent")
 }
 
 func Test_QuitCommandUpdatesQuitState(t *testing.T) {
@@ -109,12 +99,8 @@ func Test_QuitCommandUpdatesQuitState(t *testing.T) {
 	pres.tick()
 
 	update, ok := <-stateEvents
-	if !ok {
-		t.Errorf("No stateEvent sent")
-	}
-	if update.State.Quit != true {
-		t.Errorf("Quit flag not set")
-	}
+	require.True(t, ok)
+	assert.True(t, update.State.Quit, "quit flag not set")
 }
 
 func Test_FirstAddedIsRoot(t *testing.T) {
@@ -122,11 +108,7 @@ func Test_FirstAddedIsRoot(t *testing.T) {
 	f := files.File{Path: "foo"}
 	pres.add(f)
 
-	want := f
-	got := pres.root.File
-	if want != got {
-		t.Errorf("got %v", got)
-	}
+	assert.Equal(t, f, pres.root.File)
 }
 
 func Test_AddChild(t *testing.T) {
@@ -139,12 +121,9 @@ func Test_AddChild(t *testing.T) {
 	child := pres.root.Children[0]
 	rootPath := pres.root.File.Path
 	childPath := child.File.Path
-	if rootPath != "foo" {
-		t.Errorf("got root %v", rootPath)
-	}
-	if childPath != "foo/bar" {
-		t.Errorf("got %v", childPath)
-	}
+
+	assert.Equal(t, rootPath, "foo")
+	assert.Equal(t, childPath, "foo/bar")
 }
 
 func Test_AddBubblesUpSize(t *testing.T) {
@@ -212,7 +191,7 @@ func Test_AddBubblesUpSize(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Logf("Input files: %v", tt.files)
 				t.Logf("Cleaned paths: %v", cleanFiles)
-				t.Errorf("\ngot  %v,\nwant %v", got, tt.want)
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}

@@ -60,7 +60,12 @@ type Select struct {
 
 func (cmd Select) Execute(state State) State {
 	if state.Treemap != nil {
-		state.Selection = state.Treemap.FindSubTreemap(cmd.Path)
+		selection, err := state.Treemap.FindNode(cmd.Path)
+		if err != nil {
+			log.Printf("Could not select %s", cmd.Path)
+		} else {
+			state.Selection = selection
+		}
 	}
 	return state
 }

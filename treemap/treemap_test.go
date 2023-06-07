@@ -6,6 +6,7 @@ import (
 	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
 	"github.com/jensgreen/dux/treemap/tiling"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTreemapWithTiler_NoChildren(t *testing.T) {
@@ -129,10 +130,51 @@ func TestVerticalSplit_SplitsTwoNoRemainder(t *testing.T) {
 	}
 }
 
-func TestTreemapWithTiler_CapsDepth(t *testing.T) {
-	// TODO
-}
+func TestTreemap_FindNode(t *testing.T) {
+	root := &Treemap{
+		File: files.File{Path: "foo"},
+	}
+	inner := &Treemap{
+		File: files.File{Path: "foo/bar"},
+	}
+	leaf := &Treemap{
+		File: files.File{Path: "foo/bar/baz"},
+	}
+	root.Children = append(root.Children, inner)
+	inner.Children = append(inner.Children, leaf)
 
-func TestTreemapWithTiler_MaxDepthNegativeOneNoCap(t *testing.T) {
-	// TODO
+	tests := []struct {
+		name    string
+		argPath string
+		want    *Treemap
+		wantErr bool
+	}{
+		{
+			name:    "finds valid inner node",
+			argPath: "foo/bar",
+			want:    inner,
+			wantErr: false,
+		},
+		{
+			name:    "finds valid leaf node",
+			argPath: "foo/bar/baz",
+			want:    leaf,
+			wantErr: false,
+		},
+		{
+			name:    "error on miss",
+			argPath: "foo/i_am_not_in_tree",
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := root.FindNode(tt.argPath)
+			if tt.wantErr {
+				assert.Error(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

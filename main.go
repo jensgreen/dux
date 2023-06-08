@@ -19,11 +19,7 @@ func main() {
 	stateEvents := make(chan dux.StateEvent)
 	commands := make(chan dux.Command)
 
-	initState := dux.State{
-		MaxDepth:       2,
-		IsWalkingFiles: true,
-	}
-
+	initState := dux.State{}
 	pres := dux.NewPresenter(
 		fileEvents,
 		commands,

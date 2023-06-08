@@ -36,8 +36,8 @@ func (tm *Treemap) FindNode(path string) (*Treemap, error) {
 	return nil, fmt.Errorf("no such node: %s", path)
 }
 
-func New(root files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int, depth int) *Treemap {
-	return newWithParent(nil, root, rect, tiler, maxDepth, depth)
+func New(root files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int) *Treemap {
+	return newWithParent(nil, root, rect, tiler, maxDepth, 1)
 }
 
 func newWithParent(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int, depth int) *Treemap {
@@ -60,7 +60,7 @@ func newWithParent(parent *Treemap, tree files.FileTree, rect r2.Rect, tiler til
 		Spillage: spillage,
 	}
 
-	if maxDepth == -1 || depth < maxDepth {
+	if maxDepth == 0 || depth < maxDepth {
 		var tiles []tiling.Tile
 		tiles, spillage = tiler.Tile(rect, tree, depth)
 		childTreemaps = make([]*Treemap, len(tiles))

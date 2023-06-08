@@ -12,7 +12,7 @@ import (
 func TestTreemapWithTiler_NoChildren(t *testing.T) {
 	tree := files.FileTree{}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := New(tree, rect, tiling.VerticalSplit{}, -1, 0)
+	got := New(tree, rect, tiling.VerticalSplit{}, 0)
 
 	expected := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
 	if !expected.ApproxEqual(got.Rect) {
@@ -32,7 +32,7 @@ func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
 		},
 	}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := New(tree, rect, tiling.VerticalSplit{}, -1, 0)
+	got := New(tree, rect, tiling.VerticalSplit{}, 0)
 
 	if len(got.Children) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got.Children))

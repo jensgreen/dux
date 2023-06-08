@@ -119,7 +119,7 @@ func (p *Presenter) tick() {
 		if p.state.Zoom != nil {
 			rootFileTree = *p.pathLookup[p.state.Zoom.Path()]
 		}
-		rootTreemap = treemap.New(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth, 0)
+		rootTreemap = treemap.New(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth)
 
 		if p.state.Selection != nil {
 			selection, err := rootTreemap.FindNode(p.state.Selection.Path())

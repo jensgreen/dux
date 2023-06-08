@@ -53,7 +53,12 @@ func (tb *TitleBar) updateLeft(state dux.State, f files.File) {
 }
 
 func (tb *TitleBar) updateRight(state dux.State) {
-	right := fmt.Sprintf("depth: %d ", state.MaxDepth)
+	var right string
+	if state.MaxDepth > 0 {
+		right = fmt.Sprintf("depth: %d ", state.MaxDepth)
+	} else {
+		right = "depth: ∞ "
+	}
 	tb.textBar.SetRight(right, tb.style)
 }
 

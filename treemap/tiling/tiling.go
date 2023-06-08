@@ -94,24 +94,33 @@ func (sd SliceAndDice) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (t
 }
 
 type Padding struct {
-	tiler   Tiler
-	padding float64
-}
-
-func (p Padding) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
-	return p.tiler.Tile(p.pad(rect), fileTree, depth)
+	Top, Right, Bottom, Left float64
 }
 
 func (p Padding) pad(rect r2.Rect) r2.Rect {
-	// Returns EmptyRect() if resulting rect is of size <= 0. The empty rect/interval's
-	// position is unexpected:
-	// "The empty interval is considered to be positioned arbitrarily on the real line"
-	return rect.ExpandedByMargin(-p.padding)
+	rect.Y.Lo += p.Top
+	rect.X.Hi -= p.Right
+	rect.Y.Hi -= p.Bottom
+	rect.X.Lo += p.Left
+
+	if rect.X.IsEmpty() || rect.Y.IsEmpty() {
+		return r2.EmptyRect()
+	}
+	return rect
 }
 
-func WithPadding(tiler Tiler, padding float64) Tiler {
-	return Padding{
+type paddingTiler struct {
+	tiler   Tiler
+	padding Padding
+}
+
+func (p paddingTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
+	return p.tiler.Tile(p.padding.pad(rect), fileTree, depth)
+}
+
+func WithPadding(tiler Tiler, widths Padding) Tiler {
+	return paddingTiler{
 		tiler:   tiler,
-		padding: padding,
+		padding: widths,
 	}
 }

@@ -9,7 +9,16 @@ import (
 	"github.com/jensgreen/dux/files"
 )
 
-func TestPadding_PadsAllSides(t *testing.T) {
+func symmetricPadding(size float64) Padding {
+	return Padding{
+		Top:    size,
+		Right:  size,
+		Bottom: size,
+		Left:   size,
+	}
+}
+
+func TestSymmetricPadding_PadsAllSides(t *testing.T) {
 	rect := r2.Rect{
 		X: r1.Interval{Lo: 0.0, Hi: 3.0},
 		Y: r1.Interval{Lo: 0.0, Hi: 3.0},
@@ -18,18 +27,18 @@ func TestPadding_PadsAllSides(t *testing.T) {
 		X: r1.Interval{Lo: 1.0, Hi: 2.0},
 		Y: r1.Interval{Lo: 1.0, Hi: 2.0},
 	}
-	got := Padding{padding: 1.0}.pad(rect)
+	got := symmetricPadding(1.0).pad(rect)
 	if !expected.ApproxEqual(got) {
 		t.Errorf("got %+v", got)
 	}
 }
 
-func TestPadding_ClampToEmpty(t *testing.T) {
+func TestSymmetricPadding_ClampToEmpty(t *testing.T) {
 	rect := r2.Rect{
 		X: r1.Interval{Lo: 0.0, Hi: 2.0},
 		Y: r1.Interval{Lo: 1.0, Hi: 1.5},
 	}
-	got := Padding{padding: 1.0}.pad(rect)
+	got := symmetricPadding(1.0).pad(rect)
 	if !got.IsEmpty() {
 		t.Errorf("%+v is not empty", got)
 	}
@@ -38,12 +47,12 @@ func TestPadding_ClampToEmpty(t *testing.T) {
 	}
 }
 
-func TestPadding_ClampsToNonEmptyZeroWidth(t *testing.T) {
+func TestSymmetricPadding_ClampsToNonEmptyZeroWidth(t *testing.T) {
 	rect := r2.Rect{
 		X: r1.Interval{Lo: 0.0, Hi: 2.0},
 		Y: r1.Interval{Lo: 0.0, Hi: 3.0},
 	}
-	got := Padding{padding: 1.0}.pad(rect)
+	got := symmetricPadding(1.0).pad(rect)
 	if got.IsEmpty() {
 		t.Errorf("%+v is empty", got)
 	}

@@ -12,7 +12,7 @@ import (
 func TestTreemapWithTiler_NoChildren(t *testing.T) {
 	tree := files.FileTree{}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := New(tree, rect, tiling.VerticalSplit{}, 0)
+	got := NewR2Treemap(tree, rect, tiling.VerticalSplit{}, 0)
 
 	expected := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
 	if !r2.RectApproxEqual(expected, got.Rect) {
@@ -32,7 +32,7 @@ func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
 		},
 	}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := New(tree, rect, tiling.VerticalSplit{}, 0)
+	got := NewR2Treemap(tree, rect, tiling.VerticalSplit{}, 0)
 
 	if len(got.Children) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got.Children))
@@ -131,13 +131,13 @@ func TestVerticalSplit_SplitsTwoNoRemainder(t *testing.T) {
 }
 
 func TestTreemap_FindNode(t *testing.T) {
-	root := &Treemap{
+	root := &R2Treemap{
 		File: files.File{Path: "foo"},
 	}
-	inner := &Treemap{
+	inner := &R2Treemap{
 		File: files.File{Path: "foo/bar"},
 	}
-	leaf := &Treemap{
+	leaf := &R2Treemap{
 		File: files.File{Path: "foo/bar/baz"},
 	}
 	root.Children = append(root.Children, inner)
@@ -146,7 +146,7 @@ func TestTreemap_FindNode(t *testing.T) {
 	tests := []struct {
 		name    string
 		argPath string
-		want    *Treemap
+		want    *R2Treemap
 		wantErr bool
 	}{
 		{

@@ -1,8 +1,6 @@
 package z2
 
 import (
-	"math"
-
 	"github.com/jensgreen/dux/geo"
 	"github.com/jensgreen/dux/geo/r1"
 	"github.com/jensgreen/dux/geo/r2"
@@ -18,17 +16,10 @@ func RectAsR2[T geo.Number](rect geo.Rect[T]) r2.Rect {
 	}
 }
 
-func snapRoundInterval(interval r1.Interval) z1.Interval {
-	return z1.Interval{
-		Lo: int(math.Floor(interval.Lo)),
-		Hi: int(math.Floor(interval.Hi)),
-	}
-}
-
 func SnapRoundRect(rect r2.Rect) Rect {
 	return Rect{
-		X: snapRoundInterval(rect.X),
-		Y: snapRoundInterval(rect.Y),
+		X: z1.SnapRoundInterval(rect.X),
+		Y: z1.SnapRoundInterval(rect.Y),
 	}
 }
 

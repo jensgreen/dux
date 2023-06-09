@@ -8,9 +8,9 @@ import (
 )
 
 type State struct {
-	Treemap        *treemap.Treemap
-	Selection      *treemap.Treemap
-	Zoom           *treemap.Treemap
+	Treemap        *treemap.R2Treemap
+	Selection      *treemap.R2Treemap
+	Zoom           *treemap.R2Treemap
 	Quit           bool
 	MaxDepth       int
 	TreemapSize    z2.Point

@@ -115,12 +115,12 @@ func (p *Presenter) tick() {
 	if p.root != nil {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
-		var rootTreemap *treemap.Treemap
+		var rootTreemap *treemap.R2Treemap
 		rootFileTree := *p.root
 		if p.state.Zoom != nil {
 			rootFileTree = *p.pathLookup[p.state.Zoom.Path()]
 		}
-		rootTreemap = treemap.New(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth)
+		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth)
 
 		if p.state.Selection != nil {
 			selection, err := rootTreemap.FindNode(p.state.Selection.Path())

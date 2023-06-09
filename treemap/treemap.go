@@ -10,33 +10,6 @@ import (
 	"github.com/jensgreen/dux/treemap/tiling"
 )
 
-type GenericTreemap[T any] struct {
-	File     files.File
-	Rect     T
-	Parent   *GenericTreemap[T]
-	Children []*GenericTreemap[T]
-	Spillage T
-}
-
-func (tm *GenericTreemap[T]) Path() string {
-	return tm.File.Path
-}
-
-func (tm *GenericTreemap[T]) FindNode(path string) (*GenericTreemap[T], error) {
-	if path == tm.Path() {
-		return tm, nil
-	}
-
-	for _, c := range tm.Children {
-		if strings.HasPrefix(path, c.Path()) {
-			return c.FindNode(path)
-		}
-	}
-
-	return nil, fmt.Errorf("no such node: %s", path)
-}
-
-
 type Treemap struct {
 	File     files.File
 	Rect     r2.Rect

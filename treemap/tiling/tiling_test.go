@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/r1"
-	"github.com/jensgreen/dux/r2"
+	"github.com/jensgreen/dux/geo/r1"
+	"github.com/jensgreen/dux/geo/r2"
 )
 
 func symmetricPadding(size float64) Padding {

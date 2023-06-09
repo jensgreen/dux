@@ -32,18 +32,23 @@ func (i Interval[T]) Contains(x T) bool {
 	return i.Lo <= x && x < i.Hi
 }
 
+func IntervalFromPoint[T Number](pt T) Interval[T] {
+	return Interval[T]{Lo: pt, Hi: pt}
+}
+
 func (i Interval[T]) String() string {
 	return fmt.Sprintf("[Lo(%v), Hi(%v)]", i.Lo, i.Hi)
 }
 
-func IntervalFromPoint[T Number](pt T) Interval[T] {
-	return Interval[T]{Lo: pt, Hi: pt}
-}
 
 // Point
 
 type Point[T Number] struct {
 	X, Y T
+}
+
+func (p Point[T]) String() string {
+	return fmt.Sprintf("[X(%v), Hi(%v)]", p.X, p.Y)
 }
 
 // Rect

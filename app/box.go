@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/jensgreen/dux/z2"
+	"github.com/jensgreen/dux/geo/z2"
 )
 
 type boxChars struct {

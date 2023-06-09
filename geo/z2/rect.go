@@ -2,8 +2,8 @@ package z2
 
 import (
 	"github.com/jensgreen/dux/geo"
-	"github.com/jensgreen/dux/r1"
-	"github.com/jensgreen/dux/r2"
+	"github.com/jensgreen/dux/geo/r1"
+	"github.com/jensgreen/dux/geo/r2"
 )
 
 type Rect = geo.Rect[int]

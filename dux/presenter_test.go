@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/r2"
+	"github.com/jensgreen/dux/geo/r2"
 	"github.com/jensgreen/dux/treemap/tiling"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

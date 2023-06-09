@@ -2,8 +2,8 @@ package app
 
 import (
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/geo/z2"
 	"github.com/jensgreen/dux/treemap"
-	"github.com/jensgreen/dux/z2"
 )
 
 // treemap with discrete z2-coordinates

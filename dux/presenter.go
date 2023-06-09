@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 
 	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/r2"
+	"github.com/jensgreen/dux/geo/r2"
+	"github.com/jensgreen/dux/geo/z2"
 	"github.com/jensgreen/dux/treemap"
 	"github.com/jensgreen/dux/treemap/tiling"
-	"github.com/jensgreen/dux/z2"
 )
 
 type Presenter struct {

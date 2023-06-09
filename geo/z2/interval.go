@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/jensgreen/dux/geo"
-	"github.com/jensgreen/dux/r1"
+	"github.com/jensgreen/dux/geo/r1"
 )
 
 type Interval = geo.Interval[int]

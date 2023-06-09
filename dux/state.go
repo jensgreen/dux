@@ -3,8 +3,8 @@ package dux
 import (
 	"sync"
 
+	"github.com/jensgreen/dux/geo/z2"
 	"github.com/jensgreen/dux/treemap"
-	"github.com/jensgreen/dux/z2"
 )
 
 type State struct {

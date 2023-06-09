@@ -3,8 +3,8 @@ package z2
 import (
 	"testing"
 
-	"github.com/golang/geo/r1"
-	"github.com/golang/geo/r2"
+	"github.com/jensgreen/dux/r1"
+	"github.com/jensgreen/dux/r2"
 )
 
 func TestSnapRoundRect_1(t *testing.T) {

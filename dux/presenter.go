@@ -4,10 +4,11 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/r2"
 	"github.com/jensgreen/dux/treemap"
 	"github.com/jensgreen/dux/treemap/tiling"
+	"github.com/jensgreen/dux/z2"
 )
 
 type Presenter struct {
@@ -112,7 +113,7 @@ func (p *Presenter) tick() {
 	errs := p.pollEvent()
 
 	if p.root != nil {
-		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, p.state.TreemapSize.AsR2())
+		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
 		var rootTreemap *treemap.Treemap
 		rootFileTree := *p.root

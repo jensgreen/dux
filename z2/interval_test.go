@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/geo/r1"
+	"github.com/jensgreen/dux/r1"
 )
 
 func Test_Interval_Contains(t *testing.T) {

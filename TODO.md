@@ -41,7 +41,7 @@
   * [ ] Use size on disk by default, not size of contents
   * [ ] Don't cross FS boundaries
   * [ ] "Screenshot" in README
-  * [ ] Drop golang/geo dependency
+  * [✓] Drop golang/geo dependency
   * [ ] Build macOS, linux binaries in CI
   * [ ] asciinema demo?
   * [ ] man page

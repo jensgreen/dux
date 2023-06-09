@@ -1,4 +1,4 @@
-package z2
+package z1
 
 import (
 	"fmt"

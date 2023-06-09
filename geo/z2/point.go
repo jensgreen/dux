@@ -2,7 +2,7 @@ package z2
 
 import (
 	"github.com/jensgreen/dux/geo"
-	"github.com/jensgreen/dux/r2"
+	"github.com/jensgreen/dux/geo/r2"
 )
 
 type Point = geo.Point[int]

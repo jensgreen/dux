@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/jensgreen/dux/geo"
-	"github.com/jensgreen/dux/r1"
+	"github.com/jensgreen/dux/geo/r1"
 )
 
 type Point = geo.Point[float64]
@@ -17,9 +17,8 @@ func RectFromPoints(ul, lr Point) Rect {
 	}
 }
 
-const epsilon = 1e-15
-
 func RectApproxEqual(a, b Rect) bool {
+	const epsilon = 1e-20
 	return math.Abs(a.X.Lo-b.X.Lo) < epsilon &&
 		math.Abs(a.X.Hi-b.X.Hi) < epsilon &&
 		math.Abs(a.Y.Lo-b.Y.Lo) < epsilon &&

@@ -4,8 +4,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/jensgreen/dux/geo/z2"
 	"github.com/jensgreen/dux/nav"
-	"github.com/jensgreen/dux/z2"
 )
 
 type Command interface {

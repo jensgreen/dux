@@ -4,13 +4,14 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/jensgreen/dux/dux"
+	"github.com/jensgreen/dux/treemap"
 )
 
 type TreemapWidget struct {
 	width    int
 	height   int
 	appState dux.State
-	treemap  z2treemap
+	treemap  treemap.Z2Treemap
 	commands chan<- dux.Command
 
 	view         views.View
@@ -42,7 +43,7 @@ func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 			height:   child.Rect.Y.Hi - child.Rect.Y.Lo,
 			appState: tv.appState,
 			commands: tv.commands,
-			treemap:  child,
+			treemap:  *child,
 			box:      NewBox(),
 			label:    NewFileLabel(),
 		}
@@ -61,7 +62,7 @@ func (tv *TreemapWidget) updateWidgets(isRoot bool) {
 func (tv *TreemapWidget) Draw() {
 	isRoot := true
 	tv.view.Clear()
-	tv.treemap = newZ2Treemap(tv.appState.Treemap)
+	tv.treemap = *treemap.NewZ2Treemap(tv.appState.Treemap)
 	tv.updateWidgets(isRoot)
 	tv.draw(isRoot)
 }

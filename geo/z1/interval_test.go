@@ -60,7 +60,7 @@ func Test_Interval_Length(t *testing.T) {
 }
 
 func TestSnapRoundInterval_1(t *testing.T) {
-	got := snapRoundInterval(r1.Interval{Lo: 0.0, Hi: 1.99})
+	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 1.99})
 	expected := Interval{0, 1}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
@@ -68,7 +68,7 @@ func TestSnapRoundInterval_1(t *testing.T) {
 }
 
 func TestSnapRoundInterval_2(t *testing.T) {
-	got := snapRoundInterval(r1.Interval{Lo: 0.01, Hi: 1.99})
+	got := SnapRoundInterval(r1.Interval{Lo: 0.01, Hi: 1.99})
 	expected := Interval{0, 1}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
@@ -76,14 +76,14 @@ func TestSnapRoundInterval_2(t *testing.T) {
 }
 
 func TestSnapRoundInterval_3(t *testing.T) {
-	got := snapRoundInterval(r1.Interval{Lo: 0.0, Hi: 2.5})
+	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 2.5})
 	expected := Interval{0, 2}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}
 }
 func TestSnapRoundInterval_4(t *testing.T) {
-	got := snapRoundInterval(r1.Interval{Lo: 2.5, Hi: 3.0})
+	got := SnapRoundInterval(r1.Interval{Lo: 2.5, Hi: 3.0})
 	expected := Interval{2, 3}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
@@ -91,7 +91,7 @@ func TestSnapRoundInterval_4(t *testing.T) {
 }
 
 func TestSnapRoundInterval_RoundDownWhenWithinAnInt(t *testing.T) {
-	got := snapRoundInterval(r1.Interval{Lo: 0.0, Hi: 0.99})
+	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 0.99})
 	expected := Interval{0, 0}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
@@ -99,7 +99,7 @@ func TestSnapRoundInterval_RoundDownWhenWithinAnInt(t *testing.T) {
 }
 
 func TestSnapRoundInterval_RoundUpWhenCrossingInt(t *testing.T) {
-	got := snapRoundInterval(r1.Interval{Lo: 0.99, Hi: 1.99})
+	got := SnapRoundInterval(r1.Interval{Lo: 0.99, Hi: 1.99})
 	expected := Interval{0, 1}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)

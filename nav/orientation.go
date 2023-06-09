@@ -1,8 +1,11 @@
 package nav
 
 import (
+	"log"
 	"math"
 
+	"github.com/jensgreen/dux/geo/r2"
+	"github.com/jensgreen/dux/geo/z2"
 	"github.com/jensgreen/dux/treemap"
 )
 
@@ -13,18 +16,35 @@ const (
 	// orientationNone indicates that orientation is not meaningful because
 	// there are too few children
 	orientationNone orientation = iota
-	// orientationHorizontal indicates a left-to-right layout
+	// orientationHorizontal indicates a layout along the horizontal axis (left-to-right)
 	orientationHorizontal
-	// orientationVertical indicates a top-to-bottom layout
+	// orientationVertical indicates a  layout along the vertical axis (top-to-bottom)
 	orientationVertical
 )
 
-func orientationOf(treemap *treemap.Treemap) orientation {
-	if len(treemap.Children) < 2 {
+// TODO just store the split orientation in the treemap?
+func orientationOf[T treemap.Rect](tm *treemap.Treemap[T]) orientation {
+	if len(tm.Children) < 2 {
 		return orientationNone
 	}
-	a, b := treemap.Children[0], treemap.Children[1]
-	isVertical := math.Abs(b.Rect.X.Lo-a.Rect.X.Lo) < 1e-9
+	a, b := tm.Children[0], tm.Children[1]
+
+	// hack to get around limitations of type unions in Go 1.18
+	// https://github.com/golang/go/issues/51183#issuecomment-1049181719
+	// https://stackoverflow.com/a/71378366
+	var diff float64
+	switch aa := any(a.Rect).(type) {
+	case z2.Rect:
+		bb := any(b.Rect).(z2.Rect)
+		diff = float64(bb.X.Lo - aa.X.Lo)
+	case r2.Rect:
+		bb := any(b.Rect).(r2.Rect)
+		diff = bb.X.Lo - aa.X.Lo
+	default:
+		log.Panicf("not implemented: %T", aa)
+	}
+
+	isVertical := math.Abs(diff) < 1e-9
 	if isVertical {
 		return orientationVertical
 	}

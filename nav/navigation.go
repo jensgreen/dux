@@ -9,8 +9,8 @@ import (
 // Navigate returns an adjacent Treemap in the given direction,
 // stepping up the tree if necessary. Returns input Treemap if no
 // valid destination exists (e.g. for the root).
-func Navigate(tm *treemap.Treemap, direction Direction) *treemap.Treemap {
-	var destination *treemap.Treemap
+func Navigate[T treemap.Rect](tm *treemap.Treemap[T], direction Direction) *treemap.Treemap[T] {
+	var destination *treemap.Treemap[T]
 
 	switch direction {
 	case DirectionLeft:
@@ -33,23 +33,23 @@ func Navigate(tm *treemap.Treemap, direction Direction) *treemap.Treemap {
 	return destination
 }
 
-func stepLeft(tm *treemap.Treemap) *treemap.Treemap {
-	return stepHorizontal(tm, prevSibling)
+func stepLeft[T treemap.Rect](tm *treemap.Treemap[T]) *treemap.Treemap[T] {
+	return stepHorizontal[T](tm, prevSibling[T])
 }
 
-func stepRight(tm *treemap.Treemap) *treemap.Treemap {
-	return stepHorizontal(tm, nextSibling)
+func stepRight[T treemap.Rect](tm *treemap.Treemap[T]) *treemap.Treemap[T] {
+	return stepHorizontal[T](tm, nextSibling[T])
 }
 
-func stepUp(tm *treemap.Treemap) *treemap.Treemap {
-	return stepVertical(tm, prevSibling)
+func stepUp[T treemap.Rect](tm *treemap.Treemap[T]) *treemap.Treemap[T] {
+	return stepVertical[T](tm, prevSibling[T])
 }
 
-func stepDown(tm *treemap.Treemap) *treemap.Treemap {
-	return stepVertical(tm, nextSibling)
+func stepDown[T treemap.Rect](tm *treemap.Treemap[T]) *treemap.Treemap[T] {
+	return stepVertical[T](tm, nextSibling[T])
 }
 
-func stepHorizontal(tm *treemap.Treemap, getSibling adjacentSibling) *treemap.Treemap {
+func stepHorizontal[T treemap.Rect](tm *treemap.Treemap[T], getSibling adjacentSibling[T]) *treemap.Treemap[T] {
 	parent := tm.Parent
 	isRoot := parent == nil
 	if isRoot {
@@ -76,7 +76,7 @@ func stepHorizontal(tm *treemap.Treemap, getSibling adjacentSibling) *treemap.Tr
 	return nil
 }
 
-func stepVertical(tm *treemap.Treemap, getSibling adjacentSibling) *treemap.Treemap {
+func stepVertical[T treemap.Rect](tm *treemap.Treemap[T], getSibling adjacentSibling[T]) *treemap.Treemap[T] {
 	parent := tm.Parent
 	isRoot := parent == nil
 	if isRoot {
@@ -103,14 +103,14 @@ func stepVertical(tm *treemap.Treemap, getSibling adjacentSibling) *treemap.Tree
 	return nil
 }
 
-func stepIn(tm *treemap.Treemap) *treemap.Treemap {
+func stepIn[T treemap.Rect](tm *treemap.Treemap[T]) *treemap.Treemap[T] {
 	if len(tm.Children) > 0 {
 		return tm.Children[0]
 	}
 	return nil
 }
 
-func stepOut(tm *treemap.Treemap) *treemap.Treemap {
+func stepOut[T treemap.Rect](tm *treemap.Treemap[T]) *treemap.Treemap[T] {
 	if tm.Parent != nil {
 		return tm.Parent
 	}
@@ -118,10 +118,10 @@ func stepOut(tm *treemap.Treemap) *treemap.Treemap {
 }
 
 // get the next/previous sibling in the given orientation
-type adjacentSibling func(*treemap.Treemap, orientation) *treemap.Treemap
+type adjacentSibling[T treemap.Rect] func(*treemap.Treemap[T], orientation) *treemap.Treemap[T]
 
 // implements adjacentSibling
-func nextSibling(tm *treemap.Treemap, or orientation) *treemap.Treemap {
+func nextSibling[T treemap.Rect](tm *treemap.Treemap[T], or orientation) *treemap.Treemap[T] {
 	parent := tm.Parent
 	if parent == nil {
 		return nil
@@ -143,7 +143,7 @@ func nextSibling(tm *treemap.Treemap, or orientation) *treemap.Treemap {
 }
 
 // implements adjacentSibling
-func prevSibling(tm *treemap.Treemap, or orientation) *treemap.Treemap {
+func prevSibling[T treemap.Rect](tm *treemap.Treemap[T], or orientation) *treemap.Treemap[T] {
 	parent := tm.Parent
 	if parent == nil {
 		return nil

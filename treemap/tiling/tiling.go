@@ -1,9 +1,9 @@
 package tiling
 
 import (
-	"github.com/golang/geo/r1"
-	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/r1"
+	"github.com/jensgreen/dux/r2"
 )
 
 // Tiles that are too small to be meaningfully represented individually are put in a
@@ -104,7 +104,7 @@ func (p Padding) pad(rect r2.Rect) r2.Rect {
 	rect.X.Lo += p.Left
 
 	if rect.X.IsEmpty() || rect.Y.IsEmpty() {
-		return r2.EmptyRect()
+		return r2.Rect{}
 	}
 	return rect
 }

@@ -1,12 +1,13 @@
 package z2
 
-import "github.com/golang/geo/r2"
+import (
+	"github.com/jensgreen/dux/geo"
+	"github.com/jensgreen/dux/r2"
+)
 
-type Point struct {
-	X, Y int
-}
+type Point = geo.Point[int]
 
-func (pt Point) AsR2() r2.Point {
+func PointAsR2[T geo.Number](pt geo.Point[T]) r2.Point {
 	return r2.Point{
 		X: float64(pt.X),
 		Y: float64(pt.Y),

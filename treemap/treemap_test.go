@@ -3,8 +3,8 @@ package treemap
 import (
 	"testing"
 
-	"github.com/golang/geo/r2"
 	"github.com/jensgreen/dux/files"
+	"github.com/jensgreen/dux/r2"
 	"github.com/jensgreen/dux/treemap/tiling"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestTreemapWithTiler_NoChildren(t *testing.T) {
 	got := New(tree, rect, tiling.VerticalSplit{}, 0)
 
 	expected := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	if !expected.ApproxEqual(got.Rect) {
+	if !r2.RectApproxEqual(expected, got.Rect) {
 		t.Errorf("got %v, expected %v", got, expected)
 	}
 	if len(got.Children) != 0 {
@@ -37,10 +37,10 @@ func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
 	if len(got.Children) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got.Children))
 	}
-	if !got.Children[0].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 20, Y: 40})) {
+	if !r2.RectApproxEqual(got.Children[0].Rect, r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 20, Y: 40})) {
 		t.Errorf("got %v", got.Children[0].Rect)
 	}
-	if !got.Children[1].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 20, Y: 0}, r2.Point{X: 40, Y: 40})) {
+	if !r2.RectApproxEqual(got.Children[1].Rect, r2.RectFromPoints(r2.Point{X: 20, Y: 0}, r2.Point{X: 40, Y: 40})) {
 		t.Errorf("got %v", got.Children[1].Rect)
 	}
 }
@@ -59,10 +59,10 @@ func TestVerticalSplit_SplitsTwoEqualWeightsInHalfVertically(t *testing.T) {
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
 	}
-	if !got[0].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 20, Y: 40})) {
+	if !r2.RectApproxEqual(got[0].Rect, r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 20, Y: 40})) {
 		t.Errorf("got %v", got[0])
 	}
-	if !got[1].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 20, Y: 0}, r2.Point{X: 40, Y: 40})) {
+	if !r2.RectApproxEqual(got[1].Rect, r2.RectFromPoints(r2.Point{X: 20, Y: 0}, r2.Point{X: 40, Y: 40})) {
 		t.Errorf("got %v", got[1])
 	}
 }
@@ -81,10 +81,10 @@ func TestHorizontalSplit_SplitsTwoEqualWeightsInHalfHorizontally(t *testing.T) {
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
 	}
-	if !got[0].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 20})) {
+	if !r2.RectApproxEqual(got[0].Rect, r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 20})) {
 		t.Errorf("got %v", got[0].Rect)
 	}
-	if !got[1].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 0, Y: 20}, r2.Point{X: 40, Y: 40})) {
+	if !r2.RectApproxEqual(got[1].Rect, r2.RectFromPoints(r2.Point{X: 0, Y: 20}, r2.Point{X: 40, Y: 40})) {
 		t.Errorf("got %v", got[1].Rect)
 	}
 }
@@ -100,10 +100,10 @@ func TestHorizontalSplit_WorksWithNonZeroX(t *testing.T) {
 	}
 	got, _ := tiling.HorizontalSplit{}.Tile(rect, fileTree, 0)
 
-	if !got[0].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 50, Y: 20})) {
+	if !r2.RectApproxEqual(got[0].Rect, r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 50, Y: 20})) {
 		t.Errorf("got %v", got[0].Rect)
 	}
-	if !got[1].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 10, Y: 20}, r2.Point{X: 50, Y: 40})) {
+	if !r2.RectApproxEqual(got[1].Rect, r2.RectFromPoints(r2.Point{X: 10, Y: 20}, r2.Point{X: 50, Y: 40})) {
 		t.Errorf("got %v", got[1].Rect)
 	}
 }
@@ -122,10 +122,10 @@ func TestVerticalSplit_SplitsTwoNoRemainder(t *testing.T) {
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
 	}
-	if !got[0].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 10, Y: 30})) {
+	if !r2.RectApproxEqual(got[0].Rect, r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 10, Y: 30})) {
 		t.Errorf("got %v", got[0].Rect)
 	}
-	if !got[1].Rect.ApproxEqual(r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 30, Y: 30})) {
+	if !r2.RectApproxEqual(got[1].Rect, r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 30, Y: 30})) {
 		t.Errorf("got %v", got[1].Rect)
 	}
 }

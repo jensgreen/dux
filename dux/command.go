@@ -26,6 +26,13 @@ func (Refresh) Execute(state State) State {
 	return state
 }
 
+type SendToBackground struct{}
+
+func (SendToBackground) Execute(state State) State {
+	state.SendToBackground = &sync.Once{}
+	return state
+}
+
 type IncreaseMaxDepth struct{}
 
 func (IncreaseMaxDepth) Execute(state State) State {

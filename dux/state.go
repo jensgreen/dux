@@ -8,17 +8,18 @@ import (
 )
 
 type State struct {
-	Treemap        *treemap.R2Treemap
-	Selection      *treemap.R2Treemap
-	Zoom           *treemap.R2Treemap
-	Quit           bool
-	MaxDepth       int
-	TreemapSize    z2.Point
-	AppSize        z2.Point
-	TotalFiles     int
-	IsWalkingFiles bool
-	Pause          bool
-	Refresh        *sync.Once
+	Treemap          *treemap.R2Treemap
+	Selection        *treemap.R2Treemap
+	Zoom             *treemap.R2Treemap
+	Quit             bool
+	MaxDepth         int
+	TreemapSize      z2.Point
+	AppSize          z2.Point
+	TotalFiles       int
+	IsWalkingFiles   bool
+	Pause            bool
+	Refresh          *sync.Once
+	SendToBackground *sync.Once
 }
 
 type StateEvent struct {

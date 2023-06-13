@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -116,6 +117,8 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 		app.commands <- dux.Quit{}
 	case tcell.KeyCtrlL:
 		app.commands <- dux.Refresh{}
+	case tcell.KeyCtrlZ:
+		app.commands <- dux.SendToBackground{}
 	}
 	// key events are always consumed here at the top level
 	return true
@@ -149,14 +152,14 @@ func (app *App) Draw() {
 	app.screen.Show()
 }
 
-func (app *App) Refresh() {
+func (app *App) refresh() {
 	app.screen.Sync()
 }
 
 func (app *App) resize(width int, height int) {
 	app.view.Resize(0, 0, width, height)
 	app.widget.Resize()
-	app.Refresh()
+	app.refresh()
 }
 
 func (app *App) Suspend() {
@@ -203,9 +206,11 @@ loop:
 		}
 
 		if event.State.Refresh != nil {
-			event.State.Refresh.Do(app.Refresh)
+			event.State.Refresh.Do(app.refresh)
 		}
-
+		if event.State.SendToBackground != nil {
+			event.State.SendToBackground.Do(app.sendToBackground)
+		}
 	}
 }
 
@@ -320,6 +325,18 @@ func (app *App) printErrors(errs []error) {
 func (app *App) clearAlternateScreen() {
 	app.screen.Clear()
 	app.screen.Show()
+}
+
+func (app *App) sendToBackground() {
+	app.Suspend()
+	sig := syscall.SIGSTOP
+	pid := os.Getpid()
+	err := syscall.Kill(pid, sig)
+	if err != nil {
+		log.Printf("could not send %s to pid %d", sig, pid)
+	}
+	app.Resume()
+	app.Draw()
 }
 
 func NewApp(path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {

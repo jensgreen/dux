@@ -14,18 +14,18 @@ func Test_Interval_Contains(t *testing.T) {
 		want     bool
 	}{
 		// contain lower bound
-		{Interval{0, 1}, 0, true},
+		{Interval{Lo: 0, Hi: 1}, 0, true},
 		// contains inner
-		{Interval{-1, 1}, 0, true},
+		{Interval{Lo: -1, Hi: 1}, 0, true},
 
 		// zero-length contains nothing
-		{Interval{0, 0}, 0, false},
+		{Interval{Lo: 0, Hi: 0}, 0, false},
 
 		// does not contain upper bound
-		{Interval{0, 1}, 1, false},
+		{Interval{Lo: 0, Hi: 1}, 1, false},
 		// does not contain higher or lower
-		{Interval{0, 1}, 2, false},
-		{Interval{0, 1}, -1, false},
+		{Interval{Lo: 0, Hi: 1}, 2, false},
+		{Interval{Lo: 0, Hi: 1}, -1, false},
 	}
 
 	for _, tt := range tests {
@@ -43,10 +43,10 @@ func Test_Interval_Length(t *testing.T) {
 		interval Interval
 		want     int
 	}{
-		{Interval{0, 0}, 0},
-		{Interval{0, 1}, 1},
-		{Interval{0, 2}, 2},
-		{Interval{0, -1}, -1},
+		{Interval{Lo: 0, Hi: 0}, 0},
+		{Interval{Lo: 0, Hi: 1}, 1},
+		{Interval{Lo: 0, Hi: 2}, 2},
+		{Interval{Lo: 0, Hi: -1}, -1},
 	}
 
 	for _, tt := range tests {
@@ -61,7 +61,7 @@ func Test_Interval_Length(t *testing.T) {
 
 func TestSnapRoundInterval_1(t *testing.T) {
 	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 1.99})
-	expected := Interval{0, 1}
+	expected := Interval{Lo: 0, Hi: 1}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}
@@ -69,7 +69,7 @@ func TestSnapRoundInterval_1(t *testing.T) {
 
 func TestSnapRoundInterval_2(t *testing.T) {
 	got := SnapRoundInterval(r1.Interval{Lo: 0.01, Hi: 1.99})
-	expected := Interval{0, 1}
+	expected := Interval{Lo: 0, Hi: 1}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}
@@ -77,14 +77,14 @@ func TestSnapRoundInterval_2(t *testing.T) {
 
 func TestSnapRoundInterval_3(t *testing.T) {
 	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 2.5})
-	expected := Interval{0, 2}
+	expected := Interval{Lo: 0, Hi: 2}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}
 }
 func TestSnapRoundInterval_4(t *testing.T) {
 	got := SnapRoundInterval(r1.Interval{Lo: 2.5, Hi: 3.0})
-	expected := Interval{2, 3}
+	expected := Interval{Lo: 2, Hi: 3}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}
@@ -92,7 +92,7 @@ func TestSnapRoundInterval_4(t *testing.T) {
 
 func TestSnapRoundInterval_RoundDownWhenWithinAnInt(t *testing.T) {
 	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 0.99})
-	expected := Interval{0, 0}
+	expected := Interval{Lo: 0, Hi: 0}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}
@@ -100,7 +100,7 @@ func TestSnapRoundInterval_RoundDownWhenWithinAnInt(t *testing.T) {
 
 func TestSnapRoundInterval_RoundUpWhenCrossingInt(t *testing.T) {
 	got := SnapRoundInterval(r1.Interval{Lo: 0.99, Hi: 1.99})
-	expected := Interval{0, 1}
+	expected := Interval{Lo: 0, Hi: 1}
 	if !expected.Eq(got) {
 		t.Errorf("Expected %+v, got %+v", expected, got)
 	}

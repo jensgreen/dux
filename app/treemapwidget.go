@@ -86,7 +86,7 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *EventMouseLocal:
 		mx, my := ev.LocalPosition()
-		if tv.treemap.Rect.ContainsPoint(mx, my) {
+		if tv.treemap.Rect.ContainsXY(mx, my) {
 			for _, w := range tv.childWidgets {
 				if w.HandleEvent(ev) {
 					return true

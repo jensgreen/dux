@@ -6,13 +6,13 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type Number interface {
+type numeric interface {
 	constraints.Integer | constraints.Float
 }
 
 // Interval
 
-type Interval[T Number] struct {
+type Interval[T numeric] struct {
 	Lo, Hi T
 }
 
@@ -32,7 +32,7 @@ func (i Interval[T]) Contains(x T) bool {
 	return i.Lo <= x && x < i.Hi
 }
 
-func IntervalFromPoint[T Number](pt T) Interval[T] {
+func IntervalFromPoint[T numeric](pt T) Interval[T] {
 	return Interval[T]{Lo: pt, Hi: pt}
 }
 
@@ -43,7 +43,7 @@ func (i Interval[T]) String() string {
 
 // Point
 
-type Point[T Number] struct {
+type Point[T numeric] struct {
 	X, Y T
 }
 
@@ -53,7 +53,7 @@ func (p Point[T]) String() string {
 
 // Rect
 
-type Rect[T Number] struct {
+type Rect[T numeric] struct {
 	X, Y Interval[T]
 }
 
@@ -81,7 +81,7 @@ func (r Rect[T]) Size() Point[T] {
 
 }
 
-func (r Rect[T]) ContainsPoint(x, y T) bool {
+func (r Rect[T]) ContainsXY(x, y T) bool {
 	return r.X.Contains(x) && r.Y.Contains(y)
 }
 

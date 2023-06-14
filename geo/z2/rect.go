@@ -9,7 +9,7 @@ import (
 
 type Rect = geo.Rect[int]
 
-func RectAsR2[T geo.Number](rect geo.Rect[T]) r2.Rect {
+func RectAsR2(rect Rect) r2.Rect {
 	return r2.Rect{
 		X: r1.Interval{Lo: float64(rect.X.Lo), Hi: float64(rect.X.Hi)},
 		Y: r1.Interval{Lo: float64(rect.Y.Lo), Hi: float64(rect.Y.Hi)},

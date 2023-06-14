@@ -14,6 +14,7 @@ import (
 
 type Presenter struct {
 	ctx         context.Context
+	shutdown         context.CancelFunc
 	FileEvents  <-chan files.FileEvent
 	Commands    <-chan Command
 	stateEvents chan<- StateEvent
@@ -26,6 +27,7 @@ type Presenter struct {
 
 func NewPresenter(
 	ctx context.Context,
+	shutdown context.CancelFunc,
 	fileEvents <-chan files.FileEvent,
 	commands <-chan Command,
 	stateEvents chan<- StateEvent,
@@ -34,6 +36,7 @@ func NewPresenter(
 ) Presenter {
 	return Presenter{
 		ctx:         ctx,
+		shutdown:    shutdown,
 		FileEvents:  fileEvents,
 		Commands:    commands,
 		stateEvents: stateEvents,
@@ -101,8 +104,10 @@ func (p *Presenter) pollEvent() []error {
 			p.state.Quit = true
 			return nil
 		case cmd := <-p.Commands:
+			log.Printf("Presenter got command %T", cmd)
 			p.state = p.processCommand(cmd)
 		case event, ok := <-p.FileEvents:
+			log.Printf("Presenter got FileEvent")
 			if !ok {
 				// when closed, never select this channel again
 				p.FileEvents = nil
@@ -124,12 +129,15 @@ func (p *Presenter) pollEvent() []error {
 func (p *Presenter) tick() {
 	defer func() {
 		if p.state.Quit {
+			log.Printf("Presenter: Quit: enter")
 			close(p.stateEvents)
+			log.Printf("Presenter: Quit: calling shutdown func")
+			p.shutdown()
+			log.Printf("Presenter: Quit: done")
 		}
 	}()
 
 	errs := p.pollEvent()
-
 	if p.root != nil {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 

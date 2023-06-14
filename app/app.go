@@ -36,6 +36,9 @@ type App struct {
 	stateEvents <-chan dux.StateEvent
 	commands    chan<- dux.Command
 	tcellEvents chan tcell.Event
+
+	mutex          sync.Mutex
+	isBackgrounded bool
 }
 
 func (app *App) Run() error {
@@ -47,7 +50,6 @@ func (app *App) Run() error {
 	}
 	defer app.cleanup()
 
-	go signalHandler(app.commands)
 	app.startEventLoop()
 	app.startUpdateLoop()
 	app.wg.Wait()
@@ -204,9 +206,12 @@ loop:
 	for {
 		select {
 		case <-app.ctx.Done():
+			app.clearAlternateScreen()
+			app.terminateEventLoop()
 			break loop
 		case event := <-app.stateEvents:
 			if event.State.Quit {
+				log.Printf("App got Quit event, terminating updateLoop!")
 				// TODO we actually the last (and only the last) alternate screen
 				// to end up in the scrollback buffer
 				app.clearAlternateScreen()
@@ -228,7 +233,7 @@ loop:
 				event.State.Refresh.Do(app.refresh)
 			}
 			if event.State.SendToBackground != nil {
-				event.State.SendToBackground.Do(app.sendToBackground)
+				event.State.SendToBackground.Do(app.SendToBackground)
 			}
 		}
 	}
@@ -301,6 +306,8 @@ func (app *App) init() error {
 
 func (app *App) cleanup() {
 	if app.screen != nil {
+		app.mutex.Lock()
+		defer app.mutex.Unlock()
 		app.screen.Fini()
 	}
 }
@@ -347,20 +354,34 @@ func (app *App) printErrors(errs []error) {
 }
 
 func (app *App) clearAlternateScreen() {
-	app.screen.Clear()
-	app.screen.Show()
+	app.mutex.Lock()
+	defer app.mutex.Unlock()
+	if !app.isBackgrounded {
+		app.screen.Clear()
+		app.screen.Show()
+	}
 }
 
-func (app *App) sendToBackground() {
+func (app *App) SendToBackground() {
+	app.isBackgrounded = true
 	app.Suspend()
 	sig := syscall.SIGSTOP
 	pid := os.Getpid()
+	log.Printf("killing pid %d", pid)
 	err := syscall.Kill(pid, sig)
+	log.Printf("pid %d woke up", pid)
 	if err != nil {
 		log.Printf("could not send %s to pid %d", sig, pid)
 	}
+	// app.Resume()
+	// app.Draw()
+}
+
+func (app *App) WakeUp() {
+	log.Printf("WakeUp() called")
 	app.Resume()
 	app.Draw()
+	app.isBackgrounded = false
 }
 
 func NewApp(ctx context.Context, path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {
@@ -380,7 +401,7 @@ func NewApp(ctx context.Context, path string, stateEvents <-chan dux.StateEvent,
 		stateEvents: stateEvents,
 		commands:    commands,
 		tcellEvents: make(chan tcell.Event),
-		ctx: ctx,
+		ctx:         ctx,
 	}
 
 	return app

@@ -20,6 +20,7 @@ type State struct {
 	Pause            bool
 	Refresh          *sync.Once
 	SendToBackground *sync.Once
+	WakeUp           *sync.Once
 }
 
 type StateEvent struct {

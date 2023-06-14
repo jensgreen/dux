@@ -33,6 +33,13 @@ func (SendToBackground) Execute(state State) State {
 	return state
 }
 
+type WakeUp struct{}
+
+func (WakeUp) Execute(state State) State {
+	state.WakeUp = &sync.Once{}
+	return state
+}
+
 type IncreaseMaxDepth struct{}
 
 func (IncreaseMaxDepth) Execute(state State) State {

@@ -1,7 +1,6 @@
 package z2_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/jensgreen/dux/geo"
@@ -27,33 +26,30 @@ func TestSnapRoundRect(t *testing.T) {
 func Test_Rect_ContainsHalfClosed(t *testing.T) {
 	w, h := 2, 2
 	tests := []struct {
+		name string
 		rect z2.Rect
 		pt   z2.Point
 		want bool
 	}{
-		// contains lower bounds
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 0), true},
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 1), true},
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(1, 0), true},
-		// contains inner
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(1, 1), true},
+		{"contains lower bounds", geo.NewRect(0, 0, w, h), geo.NewPoint(0, 0), true},
+		{"contains lower bounds", geo.NewRect(0, 0, w, h), geo.NewPoint(0, 1), true},
+		{"contains lower bounds", geo.NewRect(0, 0, w, h), geo.NewPoint(1, 0), true},
 
-		// zero-size contains nothing
-		{geo.NewRect(0, 0, 0, 0), geo.NewPoint(0, 0), false},
+		{"contains inner", geo.NewRect(0, 0, w, h), geo.NewPoint(1, 1), true},
 
-		// does not contain upper bound
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(2, 2), false},
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 2), false},
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(2, 0), false},
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(2, 1), false},
+		{"zero-size contains nothing", geo.NewRect(0, 0, 0, 0), geo.NewPoint(0, 0), false},
 
-		// does not contain higher or lower
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 3), false},
-		{geo.NewRect(0, 0, w, h), geo.NewPoint(1, -1), false},
+		{"does not contain upper bound", geo.NewRect(0, 0, w, h), geo.NewPoint(2, 2), false},
+		{"does not contain upper bound", geo.NewRect(0, 0, w, h), geo.NewPoint(0, 2), false},
+		{"does not contain upper bound", geo.NewRect(0, 0, w, h), geo.NewPoint(2, 0), false},
+		{"does not contain upper bound", geo.NewRect(0, 0, w, h), geo.NewPoint(2, 1), false},
+
+		{"does not contain higher", geo.NewRect(0, 0, w, h), geo.NewPoint(0, 3), false},
+		{"does not contain lower", geo.NewRect(0, 0, w, h), geo.NewPoint(1, -1), false},
 	}
 
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%v is %v", tt.rect, tt.want), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got := tt.rect.ContainsHalfClosed(tt.pt)
 			assert.Equal(t, tt.want, got)
 		})

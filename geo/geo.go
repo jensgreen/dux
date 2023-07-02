@@ -28,8 +28,14 @@ func (r Interval[T]) IsEmpty() bool {
 	return r.Lo == r.Hi
 }
 
-func (i Interval[T]) Contains(x T) bool {
+// ContainsHalfClosed is true if x is in the half-closed interval [lo, hi)
+func (i Interval[T]) ContainsHalfClosed(x T) bool {
 	return i.Lo <= x && x < i.Hi
+}
+
+// ContainsClosed is true if x is in the closed interval [lo, hi]
+func (i Interval[T]) ContainsClosed(x T) bool {
+	return i.Lo <= x && x <= i.Hi
 }
 
 func IntervalFromPoint[T numeric](pt T) Interval[T] {
@@ -40,11 +46,14 @@ func (i Interval[T]) String() string {
 	return fmt.Sprintf("[Lo(%v), Hi(%v)]", i.Lo, i.Hi)
 }
 
-
 // Point
 
 type Point[T numeric] struct {
 	X, Y T
+}
+
+func NewPoint[T numeric](x, y T) Point[T] {
+	return Point[T]{X: x, Y: y}
 }
 
 func (p Point[T]) String() string {
@@ -55,6 +64,13 @@ func (p Point[T]) String() string {
 
 type Rect[T numeric] struct {
 	X, Y Interval[T]
+}
+
+func NewRect[T numeric](x, y, width, height T) Rect[T] {
+	return Rect[T]{
+		X: Interval[T]{Lo: x, Hi: width},
+		Y: Interval[T]{Lo: y, Hi: height},
+	}
 }
 
 func (r Rect[T]) Eq(other Rect[T]) bool {
@@ -81,8 +97,12 @@ func (r Rect[T]) Size() Point[T] {
 
 }
 
-func (r Rect[T]) ContainsXY(x, y T) bool {
-	return r.X.Contains(x) && r.Y.Contains(y)
+func (r Rect[T]) ContainsHalfClosed(pt Point[T]) bool {
+	return r.X.ContainsHalfClosed(pt.X) && r.Y.ContainsHalfClosed(pt.Y)
+}
+
+func (r Rect[T]) ContainsClosed(pt Point[T]) bool {
+	return r.X.ContainsClosed(pt.X) && r.Y.ContainsClosed(pt.Y)
 }
 
 func (r Rect[T]) String() string {

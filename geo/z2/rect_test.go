@@ -1,98 +1,61 @@
-package z2
+package z2_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/jensgreen/dux/geo"
 	"github.com/jensgreen/dux/geo/r1"
 	"github.com/jensgreen/dux/geo/r2"
 	"github.com/jensgreen/dux/geo/z1"
+	"github.com/jensgreen/dux/geo/z2"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestSnapRoundRect_1(t *testing.T) {
+func TestSnapRoundRect(t *testing.T) {
 	x := r1.Interval{Lo: 0.0, Hi: 0.99}
 	y := r1.Interval{Lo: 1.01, Hi: 2.66}
-	got := SnapRoundRect(r2.Rect{X: x, Y: y})
+	got := z2.SnapRoundRect(r2.Rect{X: x, Y: y})
 
-	expected := Rect{
+	want := z2.Rect{
 		X: z1.Interval{Lo: 0, Hi: 0},
 		Y: z1.Interval{Lo: 1, Hi: 2},
 	}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
-	}
+	assert.True(t, want.Eq(got), "Expected %+v, got %+v", want, got)
 }
 
-func TestRect_ContainsCenter(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
-	}
-	ok := rect.ContainsXY(1, 1)
-	if !ok {
-		t.Error()
-	}
-}
+func Test_Rect_ContainsHalfClosed(t *testing.T) {
+	w, h := 2, 2
+	tests := []struct {
+		rect z2.Rect
+		pt   z2.Point
+		want bool
+	}{
+		// contains lower bounds
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 0), true},
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 1), true},
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(1, 0), true},
+		// contains inner
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(1, 1), true},
 
-func TestRect_ContainsLoX(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
-	}
-	ok := rect.ContainsXY(0, 0) && rect.ContainsXY(0, 1)
-	if !ok {
-		t.Error()
-	}
-}
-func TestRect_ContainsLoY(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
-	}
-	ok := rect.ContainsXY(0, 0) && rect.ContainsXY(1, 0)
-	if !ok {
-		t.Error()
-	}
-}
+		// zero-size contains nothing
+		{geo.NewRect(0, 0, 0, 0), geo.NewPoint(0, 0), false},
 
-func TestRect_NotContainsHiX(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
-	}
-	ok := !(rect.ContainsXY(2, 0) && rect.ContainsXY(2, 1) && rect.ContainsXY(2, 2))
-	if !ok {
-		t.Error()
-	}
-}
-func TestRect_NotContainsHiY(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
-	}
-	ok := !(rect.ContainsXY(0, 2) && rect.ContainsXY(1, 2) && rect.ContainsXY(2, 2))
-	if !ok {
-		t.Error()
-	}
-}
+		// does not contain upper bound
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(2, 2), false},
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 2), false},
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(2, 0), false},
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(2, 1), false},
 
-func TestRect_NotContainsLower(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
+		// does not contain higher or lower
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(0, 3), false},
+		{geo.NewRect(0, 0, w, h), geo.NewPoint(1, -1), false},
 	}
-	ok := !(rect.ContainsXY(-1, 0) && rect.ContainsXY(0, -1) && rect.ContainsXY(-1, -1))
-	if !ok {
-		t.Error()
-	}
-}
 
-func TestRect_NotContainsHigher(t *testing.T) {
-	rect := Rect{
-		X: z1.Interval{Lo: 0, Hi: 2},
-		Y: z1.Interval{Lo: 0, Hi: 2},
-	}
-	ok := !(rect.ContainsXY(3, 0) && rect.ContainsXY(0, 3) && rect.ContainsXY(3, 3))
-	if !ok {
-		t.Error()
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v is %v", tt.rect, tt.want), func(t *testing.T) {
+			got := tt.rect.ContainsHalfClosed(tt.pt)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

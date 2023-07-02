@@ -1,52 +1,50 @@
-package z1
+package z1_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/jensgreen/dux/geo/r1"
+	"github.com/jensgreen/dux/geo/z1"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Interval_ContainsHalfClosed(t *testing.T) {
 	tests := []struct {
-		interval Interval
+		name     string
+		interval z1.Interval
 		x        int
 		want     bool
 	}{
-		// contain lower bound
-		{Interval{Lo: 0, Hi: 1}, 0, true},
-		// contains inner
-		{Interval{Lo: -1, Hi: 1}, 0, true},
+		{"contain lower bound", z1.Interval{Lo: 0, Hi: 1}, 0, true},
 
-		// zero-length contains nothing
-		{Interval{Lo: 0, Hi: 0}, 0, false},
+		{"contains inner", z1.Interval{Lo: -1, Hi: 1}, 0, true},
 
-		// does not contain upper bound
-		{Interval{Lo: 0, Hi: 1}, 1, false},
-		// does not contain higher or lower
-		{Interval{Lo: 0, Hi: 1}, 2, false},
-		{Interval{Lo: 0, Hi: 1}, -1, false},
+		{"zero-length contains nothing", z1.Interval{Lo: 0, Hi: 0}, 0, false},
+
+		{"does not contain upper bound", z1.Interval{Lo: 0, Hi: 1}, 1, false},
+
+		{"does not contain higher or lower", z1.Interval{Lo: 0, Hi: 1}, 2, false},
+		{"does not contain higher or lower", z1.Interval{Lo: 0, Hi: 1}, -1, false},
 	}
 
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%v is %v", tt.interval, tt.want), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got := tt.interval.ContainsHalfClosed(tt.x)
-			if got != tt.want {
-				t.Errorf("\ngot  %v,\nwant %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func Test_Interval_Length(t *testing.T) {
 	tests := []struct {
-		interval Interval
+		interval z1.Interval
 		want     int
 	}{
-		{Interval{Lo: 0, Hi: 0}, 0},
-		{Interval{Lo: 0, Hi: 1}, 1},
-		{Interval{Lo: 0, Hi: 2}, 2},
-		{Interval{Lo: 0, Hi: -1}, -1},
+		{z1.Interval{Lo: 0, Hi: 0}, 0},
+		{z1.Interval{Lo: 0, Hi: 1}, 1},
+		{z1.Interval{Lo: 0, Hi: 2}, 2},
+		{z1.Interval{Lo: 0, Hi: -1}, -1},
 	}
 
 	for _, tt := range tests {
@@ -59,49 +57,23 @@ func Test_Interval_Length(t *testing.T) {
 	}
 }
 
-func TestSnapRoundInterval_1(t *testing.T) {
-	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 1.99})
-	expected := Interval{Lo: 0, Hi: 1}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
+func Test_SnapRoundInterval(t *testing.T) {
+	tests := []struct {
+		r1Interval r1.Interval
+		want       z1.Interval
+	}{
+		{r1.Interval{Lo: 0.0, Hi: 1.99}, z1.Interval{Lo: 0, Hi: 1}},
+		{r1.Interval{Lo: 0.01, Hi: 1.99}, z1.Interval{Lo: 0, Hi: 1}},
+		{r1.Interval{Lo: 0.0, Hi: 2.5}, z1.Interval{Lo: 0, Hi: 2}},
+		{r1.Interval{Lo: 2.5, Hi: 3.0}, z1.Interval{Lo: 2, Hi: 3}},
+		{r1.Interval{Lo: 0.0, Hi: 0.99}, z1.Interval{Lo: 0, Hi: 0}},
+		{r1.Interval{Lo: 0.99, Hi: 1.99}, z1.Interval{Lo: 0, Hi: 1}},
 	}
-}
 
-func TestSnapRoundInterval_2(t *testing.T) {
-	got := SnapRoundInterval(r1.Interval{Lo: 0.01, Hi: 1.99})
-	expected := Interval{Lo: 0, Hi: 1}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
-	}
-}
-
-func TestSnapRoundInterval_3(t *testing.T) {
-	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 2.5})
-	expected := Interval{Lo: 0, Hi: 2}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
-	}
-}
-func TestSnapRoundInterval_4(t *testing.T) {
-	got := SnapRoundInterval(r1.Interval{Lo: 2.5, Hi: 3.0})
-	expected := Interval{Lo: 2, Hi: 3}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
-	}
-}
-
-func TestSnapRoundInterval_RoundDownWhenWithinAnInt(t *testing.T) {
-	got := SnapRoundInterval(r1.Interval{Lo: 0.0, Hi: 0.99})
-	expected := Interval{Lo: 0, Hi: 0}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
-	}
-}
-
-func TestSnapRoundInterval_RoundUpWhenCrossingInt(t *testing.T) {
-	got := SnapRoundInterval(r1.Interval{Lo: 0.99, Hi: 1.99})
-	expected := Interval{Lo: 0, Hi: 1}
-	if !expected.Eq(got) {
-		t.Errorf("Expected %+v, got %+v", expected, got)
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v -> %v", tt.r1Interval, tt.want), func(t *testing.T) {
+			got := z1.SnapRoundInterval(tt.r1Interval)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

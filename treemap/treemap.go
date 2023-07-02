@@ -83,7 +83,6 @@ func newR2Treemap(parent *R2Treemap, tree files.FileTree, rect r2.Rect, tiler ti
 	return treemap
 }
 
-
 func NewZ2Treemap(tm *R2Treemap) *Z2Treemap {
 	children := make([]*Z2Treemap, len(tm.Children))
 	for i, child := range tm.Children {

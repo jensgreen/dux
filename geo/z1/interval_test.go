@@ -7,7 +7,7 @@ import (
 	"github.com/jensgreen/dux/geo/r1"
 )
 
-func Test_Interval_Contains(t *testing.T) {
+func Test_Interval_ContainsHalfClosed(t *testing.T) {
 	tests := []struct {
 		interval Interval
 		x        int
@@ -30,7 +30,7 @@ func Test_Interval_Contains(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%v is %v", tt.interval, tt.want), func(t *testing.T) {
-			got := tt.interval.Contains(tt.x)
+			got := tt.interval.ContainsHalfClosed(tt.x)
 			if got != tt.want {
 				t.Errorf("\ngot  %v,\nwant %v", got, tt.want)
 			}

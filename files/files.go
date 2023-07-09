@@ -2,10 +2,13 @@ package files
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"github.com/jensgreen/dux/cancellable"
 )
 
 type ReadDir = func(dirname string) ([]os.DirEntry, error)
@@ -31,13 +34,23 @@ type FileEvent struct {
 }
 
 func WalkDir(ctx context.Context, path string, fileEvents chan<- FileEvent, readDir ReadDir) {
-	defer close(fileEvents)
+	defer func() {
+		log.Println("Closing FileEvent channel")
+		close(fileEvents)
+	}()
+
 	rootInfo, err := os.Stat(path)
 	if err != nil {
-		send(ctx, fileEvents, FileEvent{Error: err})
+		err := cancellable.Send(ctx, fileEvents, FileEvent{Error: err})
+		if err != nil {
+			return
+		}
 	} else if !rootInfo.IsDir() {
 		// TODO handle file
-		send(ctx, fileEvents, FileEvent{Error: syscall.ENOTDIR})
+		err := cancellable.Send(ctx, fileEvents, FileEvent{Error: syscall.ENOTDIR})
+		if err != nil {
+			return
+		}
 	} else {
 		f := File{
 			Path:  path,
@@ -45,16 +58,25 @@ func WalkDir(ctx context.Context, path string, fileEvents chan<- FileEvent, read
 			IsDir: true,
 		}
 		log.Println("Sending FileEvent for", f.Path)
-		send(ctx, fileEvents, FileEvent{File: f})
-		walkDir(ctx, path, f, fileEvents, readDir)
+		err := cancellable.Send(ctx, fileEvents, FileEvent{File: f})
+		if err != nil {
+			return
+		}
+
+		err = walkDir(ctx, path, f, fileEvents, readDir)
+		if err != nil {
+			return
+		}
 	}
-	log.Println("Closing FileEvent channel")
 }
 
-func walkDir(ctx context.Context, path string, parent File, fileEvents chan<- FileEvent, readDir ReadDir) {
+func walkDir(ctx context.Context, path string, parent File, fileEvents chan<- FileEvent, readDir ReadDir) error {
 	entries, err := readDir(path)
 	if err != nil {
-		send(ctx, fileEvents, FileEvent{Error: err})
+		err := cancellable.Send(ctx, fileEvents, FileEvent{Error: err})
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, entry := range entries {
@@ -63,7 +85,10 @@ func walkDir(ctx context.Context, path string, parent File, fileEvents chan<- Fi
 		if !entry.IsDir() {
 			info, err := entry.Info()
 			if err != nil {
-				send(ctx, fileEvents, FileEvent{Error: err})
+				err := cancellable.Send(ctx, fileEvents, FileEvent{Error: err})
+				if err != nil {
+					return err
+				}
 				continue
 			} else {
 				size = info.Size()
@@ -75,16 +100,16 @@ func walkDir(ctx context.Context, path string, parent File, fileEvents chan<- Fi
 			IsDir: entry.IsDir(),
 		}
 		log.Println("Sending FileEvent for", f.Path)
-		send(ctx, fileEvents, FileEvent{File: f})
+		err := cancellable.Send(ctx, fileEvents, FileEvent{File: f})
+		if err != nil {
+			return err
+		}
 		if f.IsDir {
-			walkDir(ctx, f.Path, f, fileEvents, readDir)
+			err := walkDir(ctx, f.Path, f, fileEvents, readDir)
+			if errors.Is(cancellable.ErrClosed, err) {
+				return err
+			}
 		}
 	}
-}
-
-func send(ctx context.Context, ch chan<- FileEvent, ev FileEvent) {
-	select {
-	case <-ctx.Done():
-	case ch <- ev:
-	}
+	return nil
 }

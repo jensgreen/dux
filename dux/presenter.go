@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/jensgreen/dux/cancellable"
 	"github.com/jensgreen/dux/files"
 	"github.com/jensgreen/dux/geo/r2"
 	"github.com/jensgreen/dux/geo/z2"
@@ -14,7 +15,7 @@ import (
 
 type Presenter struct {
 	ctx         context.Context
-	shutdown         context.CancelFunc
+	shutdown    context.CancelFunc
 	FileEvents  <-chan files.FileEvent
 	Commands    <-chan Command
 	stateEvents chan<- StateEvent
@@ -91,13 +92,12 @@ func (p *Presenter) Loop() {
 func (p *Presenter) pollEvent() []error {
 	var errs []error
 	if p.state.Pause {
-		select {
-		case <-p.ctx.Done():
+		cmd, err := cancellable.Receive(p.ctx, p.Commands)
+		if err != nil {
 			p.state.Quit = true
 			return nil
-		case cmd := <-p.Commands:
-			p.state = p.processCommand(cmd)
 		}
+		p.state = p.processCommand(cmd)
 	} else {
 		select {
 		case <-p.ctx.Done():
@@ -180,13 +180,12 @@ func (p *Presenter) tick() {
 	}
 
 	log.Printf("Sending stateEvent")
-	select {
-	case <-p.ctx.Done():
+	err := cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Errors: errs})
+	if err != nil {
 		p.state.Quit = true
 		return
-	case p.stateEvents <- StateEvent{State: p.state, Errors: errs}:
-		log.Printf("Sent stateEvent")
 	}
+	log.Printf("Sent stateEvent")
 }
 
 func (p *Presenter) processCommand(cmd Command) State {

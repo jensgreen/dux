@@ -13,6 +13,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/jensgreen/dux/cancellable"
 	"github.com/jensgreen/dux/dux"
 	"github.com/jensgreen/dux/geo/z2"
 	"github.com/jensgreen/dux/nav"
@@ -65,15 +66,16 @@ func (app *App) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventResize:
 		w, h := ev.Size()
 		_, th := app.titleBar.Size()
-		select {
-		case <-app.ctx.Done():
-			return true
-		case app.commands <- dux.Resize{
+
+		var cmd dux.Command = dux.Resize{
 			AppSize:     z2.Point{X: w, Y: h},
 			TreemapSize: z2.Point{X: w, Y: h - th},
-		}:
-			return true
 		}
+		err := cancellable.Send(app.ctx, app.commands, cmd)
+		if err != nil {
+			log.Println("could not handle EventResize:", err.Error())
+		}
+		return true
 	}
 	return app.widget.HandleEvent(ev)
 }
@@ -133,9 +135,9 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 	}
 
 	if cmd != nil {
-		select {
-		case <-app.ctx.Done():
-		case app.commands <- cmd:
+		err := cancellable.Send(app.ctx, app.commands, cmd)
+		if err != nil {
+			log.Printf("could send command %T: %s", cmd, err.Error())
 		}
 	}
 	// key events are always consumed here at the top level
@@ -204,37 +206,36 @@ func (app *App) updateLoop() {
 	defer app.cleanupAndRepanic()
 loop:
 	for {
-		select {
-		case <-app.ctx.Done():
+		event, err := cancellable.Receive(app.ctx, app.stateEvents)
+		if err != nil {
 			app.clearAlternateScreen()
 			app.terminateEventLoop()
 			break loop
-		case event := <-app.stateEvents:
-			if event.State.Quit {
-				log.Printf("App got Quit event, terminating updateLoop!")
-				// TODO we actually the last (and only the last) alternate screen
-				// to end up in the scrollback buffer
-				app.clearAlternateScreen()
-				app.terminateEventLoop()
-				break loop
-			}
-			app.printErrors(event.Errors)
+		}
+		if event.State.Quit {
+			log.Printf("App got Quit event, terminating updateLoop!")
+			// TODO we actually the last (and only the last) alternate screen
+			// to end up in the scrollback buffer
+			app.clearAlternateScreen()
+			app.terminateEventLoop()
+			break loop
+		}
+		app.printErrors(event.Errors)
 
-			if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
-				app.resize(event.State.AppSize.X, event.State.AppSize.Y)
-			}
+		if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
+			app.resize(event.State.AppSize.X, event.State.AppSize.Y)
+		}
 
-			if event.State.Treemap != nil {
-				app.SetState(event.State)
-				app.Draw()
-			}
+		if event.State.Treemap != nil {
+			app.SetState(event.State)
+			app.Draw()
+		}
 
-			if event.State.Refresh != nil {
-				event.State.Refresh.Do(app.refresh)
-			}
-			if event.State.SendToBackground != nil {
-				event.State.SendToBackground.Do(app.SendToBackground)
-			}
+		if event.State.Refresh != nil {
+			event.State.Refresh.Do(app.refresh)
+		}
+		if event.State.SendToBackground != nil {
+			event.State.SendToBackground.Do(app.SendToBackground)
 		}
 	}
 }
@@ -251,16 +252,15 @@ loop:
 			break
 		}
 
-		select {
-		case <-app.ctx.Done():
+		ev, err := cancellable.Receive(app.ctx, app.tcellEvents)
+		if err != nil {
 			break loop
-		case ev := <-app.tcellEvents:
-			switch ev.(type) {
-			case *terminateEventLoopEvent:
-				break loop
-			default:
-				app.HandleEvent(ev)
-			}
+		}
+		switch ev.(type) {
+		case *terminateEventLoopEvent:
+			break loop
+		default:
+			app.HandleEvent(ev)
 		}
 	}
 }

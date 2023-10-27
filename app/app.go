@@ -137,7 +137,7 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 	if cmd != nil {
 		err := cancellable.Send(app.ctx, app.commands, cmd)
 		if err != nil {
-			log.Printf("could send command %T: %s", cmd, err.Error())
+			log.Printf("could not send command %T: %s", cmd, err.Error())
 		}
 	}
 	// key events are always consumed here at the top level
@@ -235,7 +235,10 @@ loop:
 			event.State.Refresh.Do(app.refresh)
 		}
 		if event.State.SendToBackground != nil {
-			event.State.SendToBackground.Do(app.SendToBackground)
+			event.State.SendToBackground.Do(func() {
+				app.SendToBackground()
+				app.WakeUp()
+			})
 		}
 	}
 }
@@ -369,16 +372,16 @@ func (app *App) SendToBackground() {
 	pid := os.Getpid()
 	log.Printf("killing pid %d", pid)
 	err := syscall.Kill(pid, sig)
-	log.Printf("pid %d woke up", pid)
 	if err != nil {
 		log.Printf("could not send %s to pid %d", sig, pid)
+	} else {
+		// Zzzz... suspended
+		log.Printf("pid %d woke up", pid)
 	}
-	// app.Resume()
-	// app.Draw()
 }
 
 func (app *App) WakeUp() {
-	log.Printf("WakeUp() called")
+	log.Printf("waking up")
 	app.Resume()
 	app.Draw()
 	app.isBackgrounded = false

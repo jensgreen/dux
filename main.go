@@ -21,8 +21,6 @@ func main() {
 	stateEvents := make(chan dux.StateEvent)
 	commands := make(chan dux.Command)
 
-	// go recovery.StackTicker()
-
 	initState := dux.State{}
 	shutdownCtx, shutdownFunc := context.WithCancel(context.Background())
 	go app.SignalHandler(commands, shutdownFunc)

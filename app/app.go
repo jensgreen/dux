@@ -214,36 +214,45 @@ loop:
 		case event := <-app.stateEvents:
 			// Poll for state updates and the quit signal, both sent by the
 			// presenter.
-			if event.State.Quit {
-				log.Printf("App got Quit event, terminating updateLoop!")
-				// TODO we actually the last (and only the last) alternate screen
-				// to end up in the scrollback buffer
-				app.clearAlternateScreen()
-				app.closeTcellEventChannel()
+			quit := app.handleStateEvent(event)
+			if quit {
 				break loop
-			}
-			app.printErrors(event.Errors)
-
-			if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
-				app.resize(event.State.AppSize.X, event.State.AppSize.Y)
-			}
-
-			if event.State.Treemap != nil {
-				app.SetState(event.State)
-				app.Draw()
-			}
-
-			if event.State.Refresh != nil {
-				event.State.Refresh.Do(app.refresh)
-			}
-			if event.State.SendToBackground != nil {
-				event.State.SendToBackground.Do(func() {
-					app.SendToBackground()
-					app.WakeUp()
-				})
 			}
 		}
 	}
+}
+
+func (app *App) handleStateEvent(event dux.StateEvent) (quit bool) {
+	if event.State.Quit {
+		log.Printf("App got Quit event, terminating updateLoop!")
+		// TODO we actually the last (and only the last) alternate screen
+		// to end up in the scrollback buffer
+		app.clearAlternateScreen()
+		app.closeTcellEventChannel()
+		return true
+	}
+	app.printErrors(event.Errors)
+
+	if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
+		app.resize(event.State.AppSize.X, event.State.AppSize.Y)
+	}
+
+	if event.State.Treemap != nil {
+		app.SetState(event.State)
+		app.Draw()
+	}
+
+	if event.State.Refresh != nil {
+		event.State.Refresh.Do(app.refresh)
+	}
+	if event.State.SendToBackground != nil {
+		event.State.SendToBackground.Do(func() {
+			app.sendToBackground()
+			app.resumeFromBackground()
+		})
+	}
+
+	return false
 }
 
 func (app *App) closeTcellEventChannel() {
@@ -326,22 +335,21 @@ func (app *App) clearAlternateScreen() {
 	app.screen.Show()
 }
 
-func (app *App) SendToBackground() {
+func (app *App) sendToBackground() {
 	app.Suspend()
-	sig := syscall.SIGSTOP
 	pid := os.Getpid()
-	log.Printf("killing pid %d", pid)
-	err := syscall.Kill(pid, sig)
+	log.Printf("stopping pid %d", pid)
+	err := syscall.Kill(pid, syscall.SIGSTOP)
 	if err != nil {
-		log.Printf("could not send %s to pid %d", sig, pid)
+		log.Printf("could stop pid %d", pid)
 	} else {
 		// Zzzz... suspended
 		log.Printf("pid %d woke up", pid)
 	}
 }
 
-func (app *App) WakeUp() {
-	log.Printf("waking up")
+func (app *App) resumeFromBackground() {
+	log.Printf("resuming from background")
 	app.Resume()
 	app.Draw()
 }

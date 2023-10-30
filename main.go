@@ -18,8 +18,8 @@ func main() {
 	logging.Setup(debug)
 
 	fileEvents := make(chan files.FileEvent)
-	stateEvents := make(chan dux.StateEvent)
-	commands := make(chan dux.Command)
+	stateEvents := make(chan dux.StateEvent, 1)
+	commands := make(chan dux.Command, 1)
 
 	initState := dux.State{}
 	shutdownCtx, shutdownFunc := context.WithCancel(context.Background())

@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/gdamore/tcell/v2"
@@ -32,14 +31,10 @@ type App struct {
 	screen tcell.Screen
 	view   views.View
 	widget views.Widget
-	wg     sync.WaitGroup
 
 	stateEvents <-chan dux.StateEvent
 	commands    chan<- dux.Command
 	tcellEvents chan tcell.Event
-
-	mutex          sync.Mutex
-	isBackgrounded bool
 }
 
 func (app *App) Run() error {
@@ -51,10 +46,9 @@ func (app *App) Run() error {
 	}
 	defer app.cleanup()
 
-	app.startEventLoop()
-	app.startUpdateLoop()
-	app.wg.Wait()
-	return err
+	go app.screen.ChannelEvents(app.tcellEvents, app.ctx.Done())
+	app.loop()
+	return nil
 }
 
 func (app *App) HandleEvent(ev tcell.Event) bool {
@@ -200,86 +194,59 @@ func (app *App) Size() (int, int) {
 	return app.widget.Size()
 }
 
-// updateLoop polls for state updates and the quit signal, both sent by the presenter
-func (app *App) updateLoop() {
-	defer app.wg.Done()
+func (app *App) loop() {
 	defer app.cleanupAndRepanic()
 loop:
 	for {
-		event, err := cancellable.Receive(app.ctx, app.stateEvents)
-		if err != nil {
-			app.clearAlternateScreen()
-			app.terminateEventLoop()
+		select {
+		case <-app.ctx.Done():
 			break loop
-		}
-		if event.State.Quit {
-			log.Printf("App got Quit event, terminating updateLoop!")
-			// TODO we actually the last (and only the last) alternate screen
-			// to end up in the scrollback buffer
-			app.clearAlternateScreen()
-			app.terminateEventLoop()
-			break loop
-		}
-		app.printErrors(event.Errors)
+		case ev := <-app.tcellEvents:
+			// Poll for and handle tcell events.
+			// May result in commands being sent to the presenter, but no direct
+			// state updates.
+			switch ev.(type) {
+			case *terminateEventLoopEvent:
+				break loop
+			default:
+				app.HandleEvent(ev)
+			}
+		case event := <-app.stateEvents:
+			// Poll for state updates and the quit signal, both sent by the
+			// presenter.
+			if event.State.Quit {
+				log.Printf("App got Quit event, terminating updateLoop!")
+				// TODO we actually the last (and only the last) alternate screen
+				// to end up in the scrollback buffer
+				app.clearAlternateScreen()
+				app.closeTcellEventChannel()
+				break loop
+			}
+			app.printErrors(event.Errors)
 
-		if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
-			app.resize(event.State.AppSize.X, event.State.AppSize.Y)
-		}
+			if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
+				app.resize(event.State.AppSize.X, event.State.AppSize.Y)
+			}
 
-		if event.State.Treemap != nil {
-			app.SetState(event.State)
-			app.Draw()
-		}
+			if event.State.Treemap != nil {
+				app.SetState(event.State)
+				app.Draw()
+			}
 
-		if event.State.Refresh != nil {
-			event.State.Refresh.Do(app.refresh)
-		}
-		if event.State.SendToBackground != nil {
-			event.State.SendToBackground.Do(func() {
-				app.SendToBackground()
-				app.WakeUp()
-			})
+			if event.State.Refresh != nil {
+				event.State.Refresh.Do(app.refresh)
+			}
+			if event.State.SendToBackground != nil {
+				event.State.SendToBackground.Do(func() {
+					app.SendToBackground()
+					app.WakeUp()
+				})
+			}
 		}
 	}
 }
 
-// eventLoop polls for and handles tcell events. This may result in commands being sent to the presenter,
-// but no direct state updates.
-func (app *App) eventLoop() {
-	defer app.wg.Done()
-	defer app.cleanupAndRepanic()
-loop:
-	for {
-		var widget views.Widget
-		if widget = app.widget; widget == nil {
-			break
-		}
-
-		ev, err := cancellable.Receive(app.ctx, app.tcellEvents)
-		if err != nil {
-			break loop
-		}
-		switch ev.(type) {
-		case *terminateEventLoopEvent:
-			break loop
-		default:
-			app.HandleEvent(ev)
-		}
-	}
-}
-
-func (app *App) startEventLoop() {
-	app.wg.Add(1)
-	go app.screen.ChannelEvents(app.tcellEvents, app.ctx.Done())
-	go app.eventLoop()
-}
-
-func (app *App) startUpdateLoop() {
-	app.wg.Add(1)
-	go app.updateLoop()
-}
-
-func (app *App) terminateEventLoop() {
+func (app *App) closeTcellEventChannel() {
 	ev := &terminateEventLoopEvent{}
 	ev.SetEventNow()
 	if scr := app.screen; scr != nil {
@@ -309,8 +276,6 @@ func (app *App) init() error {
 
 func (app *App) cleanup() {
 	if app.screen != nil {
-		app.mutex.Lock()
-		defer app.mutex.Unlock()
 		app.screen.Fini()
 	}
 }
@@ -357,16 +322,11 @@ func (app *App) printErrors(errs []error) {
 }
 
 func (app *App) clearAlternateScreen() {
-	app.mutex.Lock()
-	defer app.mutex.Unlock()
-	if !app.isBackgrounded {
-		app.screen.Clear()
-		app.screen.Show()
-	}
+	app.screen.Clear()
+	app.screen.Show()
 }
 
 func (app *App) SendToBackground() {
-	app.isBackgrounded = true
 	app.Suspend()
 	sig := syscall.SIGSTOP
 	pid := os.Getpid()
@@ -384,7 +344,6 @@ func (app *App) WakeUp() {
 	log.Printf("waking up")
 	app.Resume()
 	app.Draw()
-	app.isBackgrounded = false
 }
 
 func NewApp(ctx context.Context, path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {

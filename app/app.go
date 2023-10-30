@@ -339,7 +339,7 @@ func (app *App) sendToBackground() {
 	app.Suspend()
 	pid := os.Getpid()
 	log.Printf("stopping pid %d", pid)
-	err := syscall.Kill(pid, syscall.SIGSTOP)
+	err := syscall.Kill(pid, syscall.SIGTSTP)
 	if err != nil {
 		log.Printf("could stop pid %d", pid)
 	} else {

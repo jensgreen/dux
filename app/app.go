@@ -178,11 +178,15 @@ func (app *App) resize(width int, height int) {
 
 func (app *App) Suspend() {
 	app.clearAlternateScreen()
-	app.screen.Suspend()
+	if err := app.screen.Suspend(); err != nil {
+		log.Panicf("could not suspend: %s", err)
+	}
 }
 
 func (app *App) Resume() {
-	app.screen.Resume()
+	if err := app.screen.Resume(); err != nil {
+		log.Panicf("could not resume: %s", err)
+	}
 }
 
 func (app *App) SetView(view views.View) {

@@ -246,14 +246,16 @@ func (app *App) handleStateEvent(event dux.StateEvent) (quit bool) {
 		app.Draw()
 	}
 
-	if event.State.Refresh != nil {
-		event.State.Refresh.Do(app.refresh)
-	}
-	if event.State.SendToBackground != nil {
-		event.State.SendToBackground.Do(func() {
-			app.sendToBackground()
-			app.resumeFromBackground()
-		})
+	switch action := event.Action; action {
+	case dux.ActionNone:
+		// noop
+	case dux.ActionRefresh:
+		app.refresh()
+	case dux.ActionBackground:
+		app.sendToBackground()
+		app.resumeFromBackground()
+	default:
+		log.Panicf("unhandled action: %d", action)
 	}
 
 	return false

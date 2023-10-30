@@ -89,23 +89,24 @@ func (p *Presenter) Loop() {
 	}
 }
 
-func (p *Presenter) pollEvent() []error {
+func (p *Presenter) pollEvent() (Action, []error) {
 	var errs []error
+	var action Action
 	if p.state.Pause {
 		cmd, err := cancellable.Receive(p.ctx, p.Commands)
 		if err != nil {
 			p.state.Quit = true
-			return nil
+			return ActionNone, nil
 		}
-		p.state = p.processCommand(cmd)
+		p.state, action = p.processCommand(cmd)
 	} else {
 		select {
 		case <-p.ctx.Done():
 			p.state.Quit = true
-			return nil
+			return ActionNone, nil
 		case cmd := <-p.Commands:
 			log.Printf("Presenter got command %T", cmd)
-			p.state = p.processCommand(cmd)
+			p.state, action = p.processCommand(cmd)
 		case event, ok := <-p.FileEvents:
 			log.Printf("Presenter got FileEvent")
 			if !ok {
@@ -123,7 +124,7 @@ func (p *Presenter) pollEvent() []error {
 			p.add(f)
 		}
 	}
-	return errs
+	return action, errs
 }
 
 func (p *Presenter) tick() {
@@ -137,7 +138,7 @@ func (p *Presenter) tick() {
 		}
 	}()
 
-	errs := p.pollEvent()
+	action, errs := p.pollEvent()
 	if p.root != nil {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
@@ -180,7 +181,7 @@ func (p *Presenter) tick() {
 	}
 
 	log.Printf("Sending stateEvent")
-	err := cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Errors: errs})
+	err := cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Action: action, Errors: errs})
 	if err != nil {
 		p.state.Quit = true
 		return
@@ -188,7 +189,7 @@ func (p *Presenter) tick() {
 	log.Printf("Sent stateEvent")
 }
 
-func (p *Presenter) processCommand(cmd Command) State {
+func (p *Presenter) processCommand(cmd Command) (State, Action) {
 	log.Printf("Executing command %T", cmd)
 	return cmd.Execute(p.state)
 }

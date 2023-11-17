@@ -51,7 +51,7 @@ func (app *App) Run() error {
 	return nil
 }
 
-func (app *App) HandleEvent(ev tcell.Event) bool {
+func (app *App) handleTcellEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		return app.handleKey(ev)
@@ -200,27 +200,26 @@ func (app *App) Size() (int, int) {
 
 func (app *App) loop() {
 	defer app.cleanupAndRepanic()
-loop:
 	for {
 		select {
 		case <-app.ctx.Done():
-			break loop
-		case ev := <-app.tcellEvents:
+			return
+		case event := <-app.tcellEvents:
 			// Poll for and handle tcell events.
 			// May result in commands being sent to the presenter, but no direct
 			// state updates.
-			switch ev.(type) {
+			switch event.(type) {
 			case *terminateEventLoopEvent:
-				break loop
+				return
 			default:
-				app.HandleEvent(ev)
+				app.handleTcellEvent(event)
 			}
 		case event := <-app.stateEvents:
 			// Poll for state updates and the quit signal, both sent by the
 			// presenter.
 			quit := app.handleStateEvent(event)
 			if quit {
-				break loop
+				return
 			}
 		}
 	}

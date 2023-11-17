@@ -11,7 +11,7 @@
 * UI tweaks
   * [✓] Hide thin tiles
   * [✓] Issue with rightmost columns when thin (e.g. .git)
-  * [ ] Send to background with ^Z
+  * [✓] Send to background with ^Z
   * [✓] Progress indicator (spinner)
   * [ ] Leave last screen in scrollback buffer on exit
   * [ ] Second status bar with keyboard commands

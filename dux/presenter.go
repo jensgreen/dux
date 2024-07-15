@@ -21,9 +21,7 @@ type Presenter struct {
 	stateEvents chan<- StateEvent
 	Tiler       tiling.Tiler
 	state       State
-	root        *files.FileTree
-	pathLookup  map[string]*files.FileTree
-	fileCount   map[string]int
+	treeBuilder TreeBuilder
 }
 
 func NewPresenter(
@@ -43,43 +41,7 @@ func NewPresenter(
 		stateEvents: stateEvents,
 		state:       initialState,
 		Tiler:       tiler,
-		pathLookup:  make(map[string]*files.FileTree),
-		fileCount:   make(map[string]int),
-	}
-}
-
-// Add a File to the hierarchy, update weights and relationships
-func (p *Presenter) add(f files.File) {
-	tree := files.FileTree{File: f}
-	parentPath := filepath.Dir(f.Path)
-	parent, ok := p.pathLookup[parentPath]
-	if ok {
-		parent.Children = append(parent.Children, tree)
-		p.bubbleUp(f)
-		p.pathLookup[f.Path] = &parent.Children[len(parent.Children)-1]
-	} else {
-		p.root = &tree
-		p.pathLookup[f.Path] = &tree
-	}
-}
-
-func (p *Presenter) bubbleUp(f files.File) {
-	var (
-		path       string = f.Path
-		parentPath string
-	)
-	for {
-		parentPath = filepath.Dir(path)
-		parent, ok := p.pathLookup[parentPath]
-		// done when there is no parent,
-		// or when parent is self (both . and / are their own parents)
-		if !ok || path == parentPath {
-			return
-		}
-		// log.Printf("Bubbling up %v to %v", f, parent.File)
-		parent.File.Size += f.Size
-		p.fileCount[parent.File.Path] += 1
-		path = parentPath
+		treeBuilder: NewTreeBuilder(), // TODO inject dep
 	}
 }
 
@@ -121,7 +83,7 @@ func (p *Presenter) pollEvent() (Action, []error) {
 			}
 			f := normalize(event.File)
 			log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
-			p.add(f)
+			p.treeBuilder.Add(f)
 		}
 	}
 	return action, errs
@@ -139,13 +101,21 @@ func (p *Presenter) tick() {
 	}()
 
 	action, errs := p.pollEvent()
-	if p.root != nil {
+	root, err := p.treeBuilder.Root()
+	if err != nil {
+		// until there is at least one (root) file there is not much to do
+	} else {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
 		var rootTreemap *treemap.R2Treemap
-		rootFileTree := *p.root
+		var rootFileTree = *root.Tree
 		if p.state.Zoom != nil {
-			rootFileTree = *p.pathLookup[p.state.Zoom.Path()]
+			node, err := p.treeBuilder.FindNode(p.state.Zoom.Path())
+			if err != nil {
+				// zoom target removed from tree
+				panic(err)
+			}
+			rootFileTree = *node.Tree
 		}
 		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth)
 
@@ -155,13 +125,18 @@ func (p *Presenter) tick() {
 				// selected node has been removed from the new treemap
 				// TODO select closest (grand)parent still remaining
 				p.state.Selection = nil
-				p.state.TotalFiles = p.fileCount[rootFileTree.File.Path]
+				p.state.TotalFiles = root.FileCount
 			} else {
+				node, err := p.treeBuilder.FindNode(p.state.Selection.Path())
+				if err != nil {
+					// selection removed from tree
+					panic(err)
+				}
 				p.state.Selection = selection
-				p.state.TotalFiles = p.fileCount[p.state.Selection.Path()]
+				p.state.TotalFiles = node.FileCount
 			}
 		} else {
-			p.state.TotalFiles = p.fileCount[rootFileTree.File.Path]
+			p.state.TotalFiles = root.FileCount
 		}
 
 		if p.state.Zoom != nil {
@@ -181,7 +156,7 @@ func (p *Presenter) tick() {
 	}
 
 	log.Printf("Sending stateEvent")
-	err := cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Action: action, Errors: errs})
+	err = cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Action: action, Errors: errs})
 	if err != nil {
 		p.state.Quit = true
 		return

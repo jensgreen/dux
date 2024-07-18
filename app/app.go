@@ -20,9 +20,7 @@ import (
 
 type App struct {
 	ctx context.Context
-
 	path      string
-	prevState *dux.State
 
 	main     *views.Panel
 	titleBar *TitleBar
@@ -236,10 +234,6 @@ func (app *App) handleStateEvent(event dux.StateEvent) (quit bool) {
 	}
 	app.printErrors(event.Errors)
 
-	if app.prevState != nil && app.prevState.AppSize != event.State.AppSize {
-		app.resize(event.State.AppSize.X, event.State.AppSize.Y)
-	}
-
 	if event.State.Treemap != nil {
 		app.SetState(event.State)
 		app.Draw()
@@ -248,6 +242,8 @@ func (app *App) handleStateEvent(event dux.StateEvent) (quit bool) {
 	switch action := event.Action; action {
 	case dux.ActionNone:
 		// noop
+	case dux.ActionResize:
+		app.resize(event.State.AppSize.X, event.State.AppSize.Y)
 	case dux.ActionRefresh:
 		app.refresh()
 	case dux.ActionBackground:

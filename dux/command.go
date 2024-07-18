@@ -59,7 +59,7 @@ func (cmd Resize) Execute(state State) (State, Action) {
 	log.Printf("Resized app to (%d, %d)", cmd.AppSize.X, cmd.AppSize.Y)
 	state.AppSize = cmd.AppSize
 	state.TreemapSize = cmd.TreemapSize
-	return state, ActionNone
+	return state, ActionResize
 }
 
 type Select struct {

@@ -24,6 +24,7 @@ const (
 	ActionNone = iota
 	ActionRefresh
 	ActionBackground
+	ActionResize
 )
 
 type StateEvent struct {

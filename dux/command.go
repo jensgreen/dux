@@ -25,7 +25,7 @@ func (Quit) Execute(state State) (State, Action) {
 type Refresh struct{}
 
 func (Refresh) Execute(state State) (State, Action) {
-	return state, ActionNone
+	return state, ActionRefresh
 }
 
 type SendToBackground struct{}

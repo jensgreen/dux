@@ -10,41 +10,27 @@ import (
 type TreeBuilder struct {
 	root       *files.FileTree
 	pathLookup map[string]*files.FileTree
-	fileCount  map[string]int
-}
-
-type FileTreeNode struct {
-	Tree      *files.FileTree
-	FileCount int
 }
 
 func NewTreeBuilder() TreeBuilder {
 	return TreeBuilder{
 		pathLookup: make(map[string]*files.FileTree),
-		fileCount:  make(map[string]int),
 	}
 }
 
-func (tb *TreeBuilder) Root() (FileTreeNode, error) {
+func (tb *TreeBuilder) Root() (*files.FileTree, error) {
 	if tb.root == nil {
-		return FileTreeNode{}, fmt.Errorf("no root")
+		return nil, fmt.Errorf("no root")
 	}
-
-	return FileTreeNode{
-		Tree:      tb.root,
-		FileCount: tb.fileCount[tb.root.File.Path],
-	}, nil
+	return tb.root, nil
 }
 
-func (tb *TreeBuilder) FindNode(path string) (FileTreeNode, error) {
+func (tb *TreeBuilder) FindNode(path string) (*files.FileTree, error) {
 	node, ok := tb.pathLookup[path]
 	if !ok {
-		return FileTreeNode{}, fmt.Errorf("no such node: %s", path)
+		return nil, fmt.Errorf("no such node: %s", path)
 	}
-	return FileTreeNode{
-		Tree:      node,
-		FileCount: tb.fileCount[path],
-	}, nil
+	return node, nil
 }
 
 // Add a File to the hierarchy, update weights and relationships
@@ -77,7 +63,7 @@ func (tb *TreeBuilder) bubbleUp(f files.File) {
 		}
 		// log.Printf("Bubbling up %v to %v", f, parent.File)
 		parent.File.Size += f.Size
-		tb.fileCount[parent.File.Path] += 1
+		parent.File.NumDescendants++
 		path = parentPath
 	}
 }

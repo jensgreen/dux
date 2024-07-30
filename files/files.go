@@ -14,9 +14,10 @@ import (
 type ReadDir = func(dirname string) ([]os.DirEntry, error)
 
 type File struct {
-	Path  string
-	Size  int64
-	IsDir bool
+	Path           string
+	Size           int64
+	IsDir          bool
+	NumDescendants int
 }
 
 func (f *File) Name() string {

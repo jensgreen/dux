@@ -108,14 +108,14 @@ func (p *Presenter) tick() {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
 		var rootTreemap *treemap.R2Treemap
-		var rootFileTree = *root.Tree
+		var rootFileTree = *root
 		if p.state.Zoom != nil {
 			node, err := p.treeBuilder.FindNode(p.state.Zoom.Path())
 			if err != nil {
 				// zoom target removed from tree
 				panic(err)
 			}
-			rootFileTree = *node.Tree
+			rootFileTree = *node
 		}
 		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth)
 
@@ -125,7 +125,7 @@ func (p *Presenter) tick() {
 				// selected node has been removed from the new treemap
 				// TODO select closest (grand)parent still remaining
 				p.state.Selection = nil
-				p.state.TotalFiles = root.FileCount
+				p.state.TotalFiles = 1 + root.File.NumDescendants
 			} else {
 				node, err := p.treeBuilder.FindNode(p.state.Selection.Path())
 				if err != nil {
@@ -133,10 +133,10 @@ func (p *Presenter) tick() {
 					panic(err)
 				}
 				p.state.Selection = selection
-				p.state.TotalFiles = node.FileCount
+				p.state.TotalFiles = 1 + node.File.NumDescendants
 			}
 		} else {
-			p.state.TotalFiles = root.FileCount
+			p.state.TotalFiles = 1 + root.File.NumDescendants
 		}
 
 		if p.state.Zoom != nil {

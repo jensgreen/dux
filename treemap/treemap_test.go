@@ -24,15 +24,13 @@ func TestTreemapWithTiler_NoChildren(t *testing.T) {
 }
 
 func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
-	tree := files.FileTree{
-		File: files.File{Size: 2},
-		Children: []files.FileTree{
-			{File: files.File{Size: 1}},
-			{File: files.File{Size: 1}},
-		},
-	}
+	fileTree := files.NewFileTree(files.File{Size: 2})
+	fileTree.AddChildren(
+		files.NewFileTree(files.File{Path: "foo", Size: 1}),
+		files.NewFileTree(files.File{Path: "bar", Size: 1}),
+	)
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := NewR2Treemap(tree, rect, tiling.VerticalSplit{}, 0)
+	got := NewR2Treemap(*fileTree, rect, tiling.VerticalSplit{}, 0)
 
 	if len(got.Children) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got.Children))
@@ -47,14 +45,12 @@ func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
 
 func TestVerticalSplit_SplitsTwoEqualWeightsInHalfVertically(t *testing.T) {
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	fileTree := files.FileTree{
-		File: files.File{Size: 2},
-		Children: []files.FileTree{
-			{File: files.File{Size: 1}},
-			{File: files.File{Size: 1}},
-		},
-	}
-	got, _ := tiling.VerticalSplit{}.Tile(rect, fileTree, 0)
+	fileTree := files.NewFileTree(files.File{Size: 2})
+	fileTree.AddChildren(
+		files.NewFileTree(files.File{Size: 1}),
+		files.NewFileTree(files.File{Size: 1}),
+	)
+	got, _ := tiling.VerticalSplit{}.Tile(rect, *fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
@@ -69,14 +65,12 @@ func TestVerticalSplit_SplitsTwoEqualWeightsInHalfVertically(t *testing.T) {
 
 func TestHorizontalSplit_SplitsTwoEqualWeightsInHalfHorizontally(t *testing.T) {
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	fileTree := files.FileTree{
-		File: files.File{Size: 2},
-		Children: []files.FileTree{
-			{File: files.File{Size: 1}},
-			{File: files.File{Size: 1}},
-		},
-	}
-	got, _ := tiling.HorizontalSplit{}.Tile(rect, fileTree, 0)
+	fileTree := files.NewFileTree(files.File{Size: 2})
+	fileTree.AddChildren(
+		files.NewFileTree(files.File{Size: 1}),
+		files.NewFileTree(files.File{Size: 1}),
+	)
+	got, _ := tiling.HorizontalSplit{}.Tile(rect, *fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
@@ -91,14 +85,12 @@ func TestHorizontalSplit_SplitsTwoEqualWeightsInHalfHorizontally(t *testing.T) {
 
 func TestHorizontalSplit_WorksWithNonZeroX(t *testing.T) {
 	rect := r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 50, Y: 40})
-	fileTree := files.FileTree{
-		File: files.File{Size: 2},
-		Children: []files.FileTree{
-			{File: files.File{Size: 1}},
-			{File: files.File{Size: 1}},
-		},
-	}
-	got, _ := tiling.HorizontalSplit{}.Tile(rect, fileTree, 0)
+	fileTree := files.NewFileTree(files.File{Size: 2})
+	fileTree.AddChildren(
+		files.NewFileTree(files.File{Size: 1}),
+		files.NewFileTree(files.File{Size: 1}),
+	)
+	got, _ := tiling.HorizontalSplit{}.Tile(rect, *fileTree, 0)
 
 	if !r2.RectApproxEqual(got[0].Rect, r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 50, Y: 20})) {
 		t.Errorf("got %v", got[0].Rect)
@@ -110,14 +102,12 @@ func TestHorizontalSplit_WorksWithNonZeroX(t *testing.T) {
 
 func TestVerticalSplit_SplitsTwoNoRemainder(t *testing.T) {
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 30, Y: 30})
-	fileTree := files.FileTree{
-		File: files.File{Size: 3},
-		Children: []files.FileTree{
-			{File: files.File{Size: 1}},
-			{File: files.File{Size: 2}},
-		},
-	}
-	got, _ := tiling.VerticalSplit{}.Tile(rect, fileTree, 0)
+	fileTree := files.NewFileTree(files.File{Size: 3})
+	fileTree.AddChildren(
+		files.NewFileTree(files.File{Size: 1}),
+		files.NewFileTree(files.File{Size: 2}),
+	)
+	got, _ := tiling.VerticalSplit{}.Tile(rect, *fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))

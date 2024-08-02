@@ -15,7 +15,7 @@ import (
 type mockTiler struct{}
 
 func (t mockTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []tiling.Tile, spillage r2.Rect) {
-	return make([]tiling.Tile, len(fileTree.Children)), r2.Rect{}
+	return make([]tiling.Tile, len(fileTree.Children())), r2.Rect{}
 }
 
 func cancel() {}

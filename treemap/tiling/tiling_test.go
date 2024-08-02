@@ -64,13 +64,11 @@ func TestSliceAndDice_SliceOrientationDependsOnDepth(t *testing.T) {
 		r2.Point{X: 0.0, Y: 0.0},
 		r2.Point{X: 100.0, Y: 100.0},
 	)
-	fileTree := files.FileTree{
-		File: files.File{Size: 2},
-		Children: []files.FileTree{
-			{File: files.File{Path: "foo", IsDir: false, Size: 1}, Children: nil},
-			{File: files.File{Path: "bar", IsDir: false, Size: 1}, Children: nil},
-		},
-	}
+	fileTree := files.NewFileTree(files.File{Size: 2})
+	fileTree.AddChildren(
+		files.NewFileTree(files.File{Path: "foo", Size: 1}),
+		files.NewFileTree(files.File{Path: "bar", Size: 1}),
+	)
 
 	wantV := []r2.Rect{
 		r2.RectFromPoints(
@@ -105,7 +103,7 @@ func TestSliceAndDice_SliceOrientationDependsOnDepth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tiler := SliceAndDice{}
-			gotTiles, gotSpillage := tiler.Tile(square, fileTree, tt.depth)
+			gotTiles, gotSpillage := tiler.Tile(square, *fileTree, tt.depth)
 			if len(gotTiles) == 0 {
 				t.Errorf("no tiles")
 			}

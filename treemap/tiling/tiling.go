@@ -30,10 +30,10 @@ type VerticalSplit struct{}
 func (VerticalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
 	tiles = []Tile{}
 
-	totalWeight := float64(fileTree.File.Size)
+	totalWeight := float64(fileTree.File().Size)
 	nextMinX := rect.Lo().X
-	for _, f := range fileTree.Children {
-		weightFactor := float64(f.File.Size) / totalWeight
+	for _, ftree := range fileTree.Children() {
+		weightFactor := float64(ftree.File().Size) / totalWeight
 		size := rect.Size()
 		dx := weightFactor * float64(size.X)
 		candidate := r2.Rect{
@@ -46,7 +46,7 @@ func (VerticalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (til
 			// Grow spillage from the right.
 			spillage.X.Lo -= candidate.X.Length()
 		} else {
-			tiles = append(tiles, Tile{File: f, Rect: candidate})
+			tiles = append(tiles, Tile{File: *ftree, Rect: candidate})
 			nextMinX = candidate.X.Hi
 		}
 	}
@@ -58,10 +58,10 @@ type HorizontalSplit struct{}
 func (HorizontalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
 	tiles = []Tile{}
 
-	totalWeight := float64(fileTree.File.Size)
+	totalWeight := float64(fileTree.File().Size)
 	nextMinY := rect.Lo().Y
-	for _, f := range fileTree.Children {
-		weightFactor := float64(f.File.Size) / totalWeight
+	for _, ftree := range fileTree.Children() {
+		weightFactor := float64(ftree.File().Size) / totalWeight
 		size := rect.Size()
 		dy := weightFactor * float64(size.Y)
 		candidate := r2.Rect{
@@ -73,7 +73,7 @@ func (HorizontalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (t
 			// grow spillage from the bottom.
 			spillage.Y.Lo -= candidate.Y.Length()
 		} else {
-			tiles = append(tiles, Tile{File: f, Rect: candidate})
+			tiles = append(tiles, Tile{File: *ftree, Rect: candidate})
 			nextMinY = candidate.Y.Hi
 		}
 	}

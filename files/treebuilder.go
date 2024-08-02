@@ -1,31 +1,29 @@
-package dux
+package files
 
 import (
 	"fmt"
 	"path/filepath"
-
-	"github.com/jensgreen/dux/files"
 )
 
 type TreeBuilder struct {
-	root       *files.FileTree
-	pathLookup map[string]*files.FileTree
+	root       *FileTree
+	pathLookup map[string]*FileTree
 }
 
 func NewTreeBuilder() TreeBuilder {
 	return TreeBuilder{
-		pathLookup: make(map[string]*files.FileTree),
+		pathLookup: make(map[string]*FileTree),
 	}
 }
 
-func (tb *TreeBuilder) Root() (*files.FileTree, error) {
+func (tb *TreeBuilder) Root() (*FileTree, error) {
 	if tb.root == nil {
 		return nil, fmt.Errorf("no root")
 	}
 	return tb.root, nil
 }
 
-func (tb *TreeBuilder) FindNode(path string) (*files.FileTree, error) {
+func (tb *TreeBuilder) FindNode(path string) (*FileTree, error) {
 	node, ok := tb.pathLookup[path]
 	if !ok {
 		return nil, fmt.Errorf("no such node: %s", path)
@@ -34,21 +32,21 @@ func (tb *TreeBuilder) FindNode(path string) (*files.FileTree, error) {
 }
 
 // Add a File to the hierarchy, update weights and relationships
-func (tb *TreeBuilder) Add(f files.File) {
-	tree := files.FileTree{File: f}
+func (tb *TreeBuilder) Add(f File) {
+	tree := &FileTree{file: f}
 	parentPath := filepath.Dir(f.Path)
 	parent, ok := tb.pathLookup[parentPath]
 	if ok {
-		parent.Children = append(parent.Children, tree)
+		parent.children = append(parent.children, tree)
 		tb.bubbleUp(f)
-		tb.pathLookup[f.Path] = &parent.Children[len(parent.Children)-1]
+		tb.pathLookup[f.Path] = parent.children[len(parent.children)-1]
 	} else {
-		tb.root = &tree
-		tb.pathLookup[f.Path] = &tree
+		tb.root = tree
+		tb.pathLookup[f.Path] = tree
 	}
 }
 
-func (tb *TreeBuilder) bubbleUp(f files.File) {
+func (tb *TreeBuilder) bubbleUp(f File) {
 	var (
 		path       string = f.Path
 		parentPath string
@@ -62,8 +60,13 @@ func (tb *TreeBuilder) bubbleUp(f files.File) {
 			return
 		}
 		// log.Printf("Bubbling up %v to %v", f, parent.File)
-		parent.File.Size += f.Size
-		parent.File.NumDescendants++
+		parent.file.Size += f.Size
+		parent.file.NumDescendants++
 		path = parentPath
 	}
+}
+
+func Normalize(f File) File {
+	f.Path = filepath.Clean(f.Path)
+	return f
 }

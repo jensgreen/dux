@@ -49,8 +49,8 @@ func NewR2Treemap(root files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDept
 }
 
 func newR2Treemap(parent *R2Treemap, tree files.FileTree, rect r2.Rect, tiler tiling.Tiler, maxDepth int, depth int) *R2Treemap {
-	if len(tree.Children) == 0 {
-		return &R2Treemap{Parent: parent, File: tree.File, Rect: rect, Children: []*R2Treemap{}}
+	if len(tree.Children()) == 0 {
+		return &R2Treemap{Parent: parent, File: tree.File(), Rect: rect, Children: []*R2Treemap{}}
 	}
 
 	var childTreemaps []*R2Treemap
@@ -63,7 +63,7 @@ func newR2Treemap(parent *R2Treemap, tree files.FileTree, rect r2.Rect, tiler ti
 
 	treemap := &R2Treemap{
 		Parent:   parent,
-		File:     tree.File,
+		File:     tree.File(),
 		Rect:     rect,
 		Spillage: spillage,
 	}

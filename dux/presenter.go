@@ -3,7 +3,6 @@ package dux
 import (
 	"context"
 	"log"
-	"path/filepath"
 
 	"github.com/jensgreen/dux/cancellable"
 	"github.com/jensgreen/dux/files"
@@ -21,7 +20,7 @@ type Presenter struct {
 	stateEvents chan<- StateEvent
 	Tiler       tiling.Tiler
 	state       State
-	treeBuilder TreeBuilder
+	treeBuilder files.TreeBuilder
 }
 
 func NewPresenter(
@@ -41,7 +40,7 @@ func NewPresenter(
 		stateEvents: stateEvents,
 		state:       initialState,
 		Tiler:       tiler,
-		treeBuilder: NewTreeBuilder(), // TODO inject dep
+		treeBuilder: files.NewTreeBuilder(), // TODO inject dep
 	}
 }
 
@@ -81,7 +80,7 @@ func (p *Presenter) pollEvent() (Action, []error) {
 				errs = append(errs, event.Error)
 				break
 			}
-			f := normalize(event.File)
+			f := event.File
 			log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
 			p.treeBuilder.Add(f)
 		}
@@ -125,7 +124,7 @@ func (p *Presenter) tick() {
 				// selected node has been removed from the new treemap
 				// TODO select closest (grand)parent still remaining
 				p.state.Selection = nil
-				p.state.TotalFiles = 1 + root.File.NumDescendants
+				p.state.TotalFiles = 1 + root.File().NumDescendants
 			} else {
 				node, err := p.treeBuilder.FindNode(p.state.Selection.Path())
 				if err != nil {
@@ -133,10 +132,10 @@ func (p *Presenter) tick() {
 					panic(err)
 				}
 				p.state.Selection = selection
-				p.state.TotalFiles = 1 + node.File.NumDescendants
+				p.state.TotalFiles = 1 + node.File().NumDescendants
 			}
 		} else {
-			p.state.TotalFiles = 1 + root.File.NumDescendants
+			p.state.TotalFiles = 1 + root.File().NumDescendants
 		}
 
 		if p.state.Zoom != nil {
@@ -167,9 +166,4 @@ func (p *Presenter) tick() {
 func (p *Presenter) processCommand(cmd Command) (State, Action) {
 	log.Printf("Executing command %T", cmd)
 	return cmd.Execute(p.state)
-}
-
-func normalize(f files.File) files.File {
-	f.Path = filepath.Clean(f.Path)
-	return f
 }

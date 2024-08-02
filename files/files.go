@@ -25,8 +25,33 @@ func (f *File) Name() string {
 }
 
 type FileTree struct {
-	File     File
-	Children []FileTree
+	file     File
+	parent   *FileTree
+	children []*FileTree
+}
+
+func (ft *FileTree) File() File {
+	return ft.file
+}
+
+func (ft *FileTree) Parent() (*FileTree, bool) {
+	return ft.parent, ft.parent != nil
+}
+
+func (ft *FileTree) Children() []*FileTree {
+	return ft.children[:]
+}
+
+func (ft *FileTree) SetParent(parent *FileTree) {
+	ft.parent = parent
+}
+
+func (ft *FileTree) AddChildren(children ...*FileTree) {
+	ft.children = append(ft.children, children...)
+}
+
+func NewFileTree(f File) *FileTree {
+	return &FileTree{file: f}
 }
 
 type FileEvent struct {

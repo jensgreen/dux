@@ -1,4 +1,4 @@
-package dux
+package files_test
 
 import (
 	"fmt"
@@ -11,23 +11,28 @@ import (
 )
 
 func Test_FirstAddedIsRoot(t *testing.T) {
-	tb := NewTreeBuilder()
+	tb := files.NewTreeBuilder()
 	f := files.File{Path: "foo"}
 	tb.Add(f)
 
-	assert.Equal(t, f, tb.root.File)
+	got, err := tb.Root()
+
+	assert.NoError(t, err)
+	assert.Equal(t, f, got.File())
 }
 
 func Test_AddChild(t *testing.T) {
-	tb := NewTreeBuilder()
+	tb := files.NewTreeBuilder()
 	foo := files.File{Path: "foo"}
 	bar := files.File{Path: "foo/bar"}
 	tb.Add(foo)
 	tb.Add(bar)
 
-	child := tb.root.Children[0]
-	rootPath := tb.root.File.Path
-	childPath := child.File.Path
+	root, ok := tb.Root()
+	assert.NoError(t, ok)
+	child := root.Children()[0]
+	rootPath := root.File().Path
+	childPath := child.File().Path
 
 	assert.Equal(t, rootPath, "foo")
 	assert.Equal(t, childPath, "foo/bar")
@@ -82,10 +87,10 @@ func Test_AddBubblesUpSize(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			tb := NewTreeBuilder()
+			tb := files.NewTreeBuilder()
 			cleanFiles := make([]files.File, len(tt.files))
 			for j, f := range tt.files {
-				cleanFiles[j] = normalize(f)
+				cleanFiles[j] = files.Normalize(f) // FIXME
 			}
 			for _, f := range cleanFiles {
 				tb.Add(f)
@@ -93,7 +98,9 @@ func Test_AddBubblesUpSize(t *testing.T) {
 			got := make([]int64, len(tt.want))
 			for w := range tt.want {
 				cleanPath := filepath.Clean(cleanFiles[w].Path)
-				got[w] = tb.pathLookup[cleanPath].File.Size
+				node, ok := tb.FindNode(cleanPath)
+				assert.NoError(t, ok)
+				got[w] = node.File().Size
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Logf("Input files: %v", tt.files)

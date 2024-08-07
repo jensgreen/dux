@@ -11,7 +11,7 @@ import (
 )
 
 func Test_FirstInsertedIsRoot(t *testing.T) {
-	tb := files.NewTreeBuilder()
+	tb := files.NewFS()
 	f := files.File{Path: "foo"}
 	tb.Insert(f)
 
@@ -22,7 +22,7 @@ func Test_FirstInsertedIsRoot(t *testing.T) {
 }
 
 func Test_InsertChild(t *testing.T) {
-	tb := files.NewTreeBuilder()
+	tb := files.NewFS()
 	foo := files.File{Path: "foo"}
 	bar := files.File{Path: "foo/bar"}
 	tb.Insert(foo)
@@ -39,7 +39,7 @@ func Test_InsertChild(t *testing.T) {
 }
 
 func Test_InsertErrorOnUncleanPath(t *testing.T) {
-	tb := files.NewTreeBuilder()
+	tb := files.NewFS()
 	// "./foo" has shorter equivalent "foo"
 	f := files.File{Path: "./foo"}
 	err := tb.Insert(f)
@@ -87,7 +87,7 @@ func Test_InsertBubblesUpSize(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			tb := files.NewTreeBuilder()
+			tb := files.NewFS()
 			for _, f := range tt.files {
 				err := tb.Insert(f)
 				require.NoError(t, err)

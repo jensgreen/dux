@@ -20,7 +20,7 @@ type Presenter struct {
 	stateEvents chan<- StateEvent
 	Tiler       tiling.Tiler
 	state       State
-	treeBuilder files.TreeBuilder
+	fs          *files.FS
 }
 
 func NewPresenter(
@@ -40,7 +40,7 @@ func NewPresenter(
 		stateEvents: stateEvents,
 		state:       initialState,
 		Tiler:       tiler,
-		treeBuilder: files.NewTreeBuilder(), // TODO inject dep
+		fs:          files.NewFS(), // TODO inject dep
 	}
 }
 
@@ -82,7 +82,7 @@ func (p *Presenter) pollEvent() (Action, []error) {
 			}
 			f := event.File
 			log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
-			p.treeBuilder.Insert(f)
+			p.fs.Insert(f)
 		}
 	}
 	return action, errs
@@ -100,14 +100,14 @@ func (p *Presenter) tick() {
 	}()
 
 	action, errs := p.pollEvent()
-	root, ok := p.treeBuilder.Root()
+	root, ok := p.fs.Root()
 	if ok {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
 		var rootTreemap *treemap.R2Treemap
 		var rootFileTree = *root
 		if p.state.Zoom != nil {
-			node, ok := p.treeBuilder.Find(p.state.Zoom.Path())
+			node, ok := p.fs.Find(p.state.Zoom.Path())
 			if !ok {
 				panic("zoom target removed from tree")
 			}
@@ -123,7 +123,7 @@ func (p *Presenter) tick() {
 				p.state.Selection = nil
 				p.state.TotalFiles = 1 + root.File().NumDescendants
 			} else {
-				node, ok := p.treeBuilder.Find(p.state.Selection.Path())
+				node, ok := p.fs.Find(p.state.Selection.Path())
 				if !ok {
 					panic("selection removed from tree")
 				}

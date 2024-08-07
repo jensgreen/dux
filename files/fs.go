@@ -5,37 +5,37 @@ import (
 	"path/filepath"
 )
 
-type TreeBuilder struct {
-	root      *FileTree
-	pathIndex map[string]*FileTree
+type FS struct {
+	root       *FileTree
+	pathLookup map[string]*FileTree
 }
 
-func (tb *TreeBuilder) Root() (*FileTree, bool) {
-	return tb.root, tb.root != nil
+func (fs *FS) Root() (*FileTree, bool) {
+	return fs.root, fs.root != nil
 }
 
-func (tb *TreeBuilder) Find(path string) (*FileTree, bool) {
-	node, ok := tb.pathIndex[path]
+func (fs *FS) Find(path string) (*FileTree, bool) {
+	node, ok := fs.pathLookup[path]
 	return node, ok
 }
 
 // Insert a File to the hierarchy, update weights and relationships
-func (tb *TreeBuilder) Insert(f File) error {
+func (fs *FS) Insert(f File) error {
 	cleanPath := filepath.Clean(f.Path)
 	if f.Path != cleanPath {
 		return fmt.Errorf("path %q has shorter filepath.Clean equivalent %q", f.Path, cleanPath)
 	}
 
 	tree := &FileTree{file: f}
-	tb.pathIndex[f.Path] = tree
+	fs.pathLookup[f.Path] = tree
 
-	if _, ok := tb.Root(); !ok {
-		tb.root = tree
+	if _, ok := fs.Root(); !ok {
+		fs.root = tree
 		return nil
 	}
 
 	parentPath := f.Dir()
-	parent, ok := tb.pathIndex[parentPath]
+	parent, ok := fs.pathLookup[parentPath]
 	if ok {
 		tree.SetParent(parent)
 		parent.AddChildren(tree)
@@ -48,8 +48,8 @@ func (tb *TreeBuilder) Insert(f File) error {
 	return nil
 }
 
-func NewTreeBuilder() TreeBuilder {
-	return TreeBuilder{
-		pathIndex: make(map[string]*FileTree),
+func NewFS() *FS {
+	return &FS{
+		pathLookup: make(map[string]*FileTree),
 	}
 }

@@ -33,6 +33,7 @@ func main() {
 		stateEvents,
 		initState,
 		tiling.WithPadding(tiling.SliceAndDice{}, tiling.Padding{Top: 1, Right: 1, Bottom: 1, Left: 1}),
+		files.NewFS(),
 	)
 	app := app.NewApp(shutdownCtx, path, stateEvents, commands)
 

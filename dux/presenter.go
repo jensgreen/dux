@@ -15,10 +15,10 @@ import (
 type Presenter struct {
 	ctx         context.Context
 	shutdown    context.CancelFunc
-	FileEvents  <-chan files.FileEvent
-	Commands    <-chan Command
+	fileEvents  <-chan files.FileEvent
+	commands    <-chan Command
 	stateEvents chan<- StateEvent
-	Tiler       tiling.Tiler
+	tiler       tiling.Tiler
 	state       State
 	fs          *files.FS
 }
@@ -31,16 +31,17 @@ func NewPresenter(
 	stateEvents chan<- StateEvent,
 	initialState State,
 	tiler tiling.Tiler,
+	fs *files.FS,
 ) Presenter {
 	return Presenter{
 		ctx:         ctx,
 		shutdown:    shutdown,
-		FileEvents:  fileEvents,
-		Commands:    commands,
+		fileEvents:  fileEvents,
+		commands:    commands,
 		stateEvents: stateEvents,
 		state:       initialState,
-		Tiler:       tiler,
-		fs:          files.NewFS(), // TODO inject dep
+		tiler:       tiler,
+		fs:          fs,
 	}
 }
 
@@ -54,7 +55,7 @@ func (p *Presenter) pollEvent() (Action, []error) {
 	var errs []error
 	var action Action
 	if p.state.Pause {
-		cmd, err := cancellable.Receive(p.ctx, p.Commands)
+		cmd, err := cancellable.Receive(p.ctx, p.commands)
 		if err != nil {
 			p.state.Quit = true
 			return ActionNone, nil
@@ -65,14 +66,14 @@ func (p *Presenter) pollEvent() (Action, []error) {
 		case <-p.ctx.Done():
 			p.state.Quit = true
 			return ActionNone, nil
-		case cmd := <-p.Commands:
+		case cmd := <-p.commands:
 			log.Printf("Presenter got command %T", cmd)
 			p.state, action = p.processCommand(cmd)
-		case event, ok := <-p.FileEvents:
+		case event, ok := <-p.fileEvents:
 			log.Printf("Presenter got FileEvent")
 			if !ok {
 				// when closed, never select this channel again
-				p.FileEvents = nil
+				p.fileEvents = nil
 				p.state.IsWalkingFiles = false
 				break
 			}
@@ -113,7 +114,7 @@ func (p *Presenter) tick() {
 			}
 			rootFileTree = *node
 		}
-		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.Tiler, p.state.MaxDepth)
+		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.tiler, p.state.MaxDepth)
 
 		if p.state.Selection != nil {
 			selection, err := rootTreemap.FindNode(p.state.Selection.Path())

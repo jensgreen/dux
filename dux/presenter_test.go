@@ -26,7 +26,7 @@ func Test_TickProducesStateEvents(t *testing.T) {
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 	close(fileEvents)
 
-	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, nil)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, nil, files.NewFS())
 	pres.tick()
 
 	stateEvent, ok := <-stateEvents
@@ -43,7 +43,7 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 	}()
 
 	stateEvents := make(chan StateEvent)
-	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockTiler{}, files.NewFS())
 	go pres.Loop()
 
 	for e := range stateEvents {
@@ -66,7 +66,7 @@ func Test_EmitsStateEventForRootOnEachFileEvent(t *testing.T) {
 	fileEvents <- files.FileEvent{File: child}
 	close(fileEvents)
 
-	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockTiler{}, files.NewFS())
 	pres.tick() // foo
 	pres.tick() // foo/bar
 	pres.tick() // closed
@@ -85,7 +85,7 @@ func Test_EmitsStateEventOnFileEvent(t *testing.T) {
 
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 
-	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, mockTiler{}, files.NewFS())
 	pres.tick()
 	_, ok := <-stateEvents
 	assert.True(t, ok, "no StateEvent sent")
@@ -94,7 +94,7 @@ func Test_EmitsStateEventOnFileEvent(t *testing.T) {
 func Test_QuitCommandUpdatesQuitState(t *testing.T) {
 	stateEvents := make(chan StateEvent, 1)
 	commands := make(chan Command, 1)
-	pres := NewPresenter(context.Background(), cancel, nil, commands, stateEvents, State{}, mockTiler{})
+	pres := NewPresenter(context.Background(), cancel, nil, commands, stateEvents, State{}, mockTiler{}, files.NewFS())
 	commands <- Quit{}
 	pres.tick()
 

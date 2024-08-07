@@ -2,18 +2,18 @@ package files_test
 
 import (
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/jensgreen/dux/files"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func Test_FirstAddedIsRoot(t *testing.T) {
+func Test_FirstInsertedIsRoot(t *testing.T) {
 	tb := files.NewTreeBuilder()
 	f := files.File{Path: "foo"}
-	tb.Add(f)
+	tb.Insert(f)
 
 	got, err := tb.Root()
 
@@ -21,15 +21,15 @@ func Test_FirstAddedIsRoot(t *testing.T) {
 	assert.Equal(t, f, got.File())
 }
 
-func Test_AddChild(t *testing.T) {
+func Test_InsertChild(t *testing.T) {
 	tb := files.NewTreeBuilder()
 	foo := files.File{Path: "foo"}
 	bar := files.File{Path: "foo/bar"}
-	tb.Add(foo)
-	tb.Add(bar)
+	tb.Insert(foo)
+	tb.Insert(bar)
 
 	root, ok := tb.Root()
-	assert.NoError(t, ok)
+	require.NoError(t, ok)
 	child := root.Children()[0]
 	rootPath := root.File().Path
 	childPath := child.File().Path
@@ -38,7 +38,15 @@ func Test_AddChild(t *testing.T) {
 	assert.Equal(t, childPath, "foo/bar")
 }
 
-func Test_AddBubblesUpSize(t *testing.T) {
+func Test_InsertErrorOnUncleanPath(t *testing.T) {
+	tb := files.NewTreeBuilder()
+	// "./foo" has shorter equivalent "foo"
+	f := files.File{Path: "./foo"}
+	err := tb.Insert(f)
+	assert.Error(t, err)
+}
+
+func Test_InsertBubblesUpSize(t *testing.T) {
 	tests := []struct {
 		files []files.File
 		want  []int64
@@ -46,14 +54,6 @@ func Test_AddBubblesUpSize(t *testing.T) {
 		{
 			[]files.File{
 				{Path: ".", Size: 1},
-				{Path: "./foo", Size: 2},
-				{Path: "./foo/bar", Size: 4},
-			},
-			[]int64{7, 6, 4},
-		},
-		{
-			[]files.File{
-				{Path: "", Size: 1},
 				{Path: "foo", Size: 2},
 				{Path: "foo/bar", Size: 4},
 			},
@@ -88,23 +88,18 @@ func Test_AddBubblesUpSize(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			tb := files.NewTreeBuilder()
-			cleanFiles := make([]files.File, len(tt.files))
-			for j, f := range tt.files {
-				cleanFiles[j] = files.Normalize(f) // FIXME
-			}
-			for _, f := range cleanFiles {
-				tb.Add(f)
+			for _, f := range tt.files {
+				err := tb.Insert(f)
+				require.NoError(t, err)
 			}
 			got := make([]int64, len(tt.want))
 			for w := range tt.want {
-				cleanPath := filepath.Clean(cleanFiles[w].Path)
-				node, ok := tb.FindNode(cleanPath)
-				assert.NoError(t, ok)
+				node, ok := tb.FindNode(tt.files[w].Path)
+				require.NoError(t, ok)
 				got[w] = node.File().Size
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Logf("Input files: %v", tt.files)
-				t.Logf("Cleaned paths: %v", cleanFiles)
 				assert.Equal(t, tt.want, got)
 			}
 		})

@@ -20,6 +20,10 @@ type File struct {
 	NumDescendants int
 }
 
+func (f *File) Dir() string {
+	return filepath.Dir(f.Path)
+}
+
 func (f *File) Name() string {
 	return filepath.Base(f.Path)
 }
@@ -65,6 +69,7 @@ func WalkDir(ctx context.Context, path string, fileEvents chan<- FileEvent, read
 		close(fileEvents)
 	}()
 
+	path = filepath.Clean(path)
 	rootInfo, err := os.Stat(path)
 	if err != nil {
 		err := cancellable.Send(ctx, fileEvents, FileEvent{Error: err})

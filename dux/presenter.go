@@ -82,7 +82,7 @@ func (p *Presenter) pollEvent() (Action, []error) {
 			}
 			f := event.File
 			log.Printf("Got FileEvent for %v with size %v", f.Path, f.Size)
-			p.treeBuilder.Add(f)
+			p.treeBuilder.Insert(f)
 		}
 	}
 	return action, errs

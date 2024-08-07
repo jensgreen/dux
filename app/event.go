@@ -23,10 +23,11 @@ func (ev *EventMouseLocal) When() time.Time {
 	return ev.RootEvent().When()
 }
 
-func NewEventMouseLocal(localX int, localY int, ev *tcell.EventMouse) *EventMouseLocal {
+func NewEventMouseLocal(ev *tcell.EventMouse, offsetX int, offsetY int) *EventMouseLocal {
+	mx, my := ev.Position()
 	return &EventMouseLocal{
-		localX: localX,
-		localY: localY,
+		localX: mx - offsetX,
+		localY: my - offsetY,
 		event:  ev,
 	}
 }

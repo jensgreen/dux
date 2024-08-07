@@ -19,12 +19,13 @@ import (
 )
 
 type App struct {
-	ctx context.Context
-	path      string
+	ctx  context.Context
+	path string
 
-	main     *views.Panel
-	titleBar *TitleBar
-	treemap  *TreemapWidget
+	main      *views.Panel
+	titleBar  *TitleBar
+	treemap   *TreemapWidget
+	statusBar *StatusBar
 
 	screen tcell.Screen
 	view   views.View
@@ -140,7 +141,7 @@ func (app *App) handleMouse(ev *tcell.EventMouse) bool {
 	mx, my := ev.Position()
 	log.Printf("EventMouse Buttons: %#b Modifiers: %#b Position: (%d, %d)", ev.Buttons(), ev.Modifiers(), mx, my)
 
-	isClick := ev.Buttons()&tcell.ButtonPrimary == tcell.ButtonPrimary
+	isClick := ev.Buttons()&tcell.ButtonPrimary != 0
 	if isClick {
 		log.Printf("Mouse click!")
 
@@ -148,7 +149,11 @@ func (app *App) handleMouse(ev *tcell.EventMouse) bool {
 			return true
 		}
 		_, titlebarHeight := app.titleBar.Size()
-		ev := NewEventMouseLocal(mx, my-titlebarHeight, ev)
+		_, tmHeight := app.treemap.Size()
+		if app.statusBar.HandleEvent(NewEventMouseLocal(ev, 0, titlebarHeight+tmHeight)) {
+			return true
+		}
+		ev := NewEventMouseLocal(ev, 0, titlebarHeight)
 		_ = app.treemap.HandleEvent(ev)
 	}
 	return true
@@ -358,16 +363,19 @@ func (app *App) resumeFromBackground() {
 func NewApp(ctx context.Context, path string, stateEvents <-chan dux.StateEvent, commands chan<- dux.Command) *App {
 	tv := NewTreemapWidget(commands)
 	title := NewTitleBar(commands)
+	status := NewStatusBar(commands)
 
 	main := &views.Panel{}
 	main.SetTitle(title)
 	main.SetContent(tv)
+	main.SetStatus(status)
 
 	app := &App{
 		path:        path,
 		main:        main,
 		widget:      main,
 		titleBar:    title,
+		statusBar:   status,
 		treemap:     tv,
 		stateEvents: stateEvents,
 		commands:    commands,

@@ -14,7 +14,7 @@
   * [✓] Send to background with ^Z
   * [✓] Progress indicator (spinner)
   * [ ] Leave last screen in scrollback buffer on exit
-  * [ ] Second status bar with keyboard commands
+  * [✓] Status bar with keyboard commands
   * [ ] Display number of hidden files
 * Deletion
   * [ ] Delete selected file/dir

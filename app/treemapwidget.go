@@ -87,7 +87,7 @@ func (tv *TreemapWidget) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *EventMouseLocal:
 		mx, my := ev.LocalPosition()
-		if tv.treemap.Rect.ContainsClosed(geo.NewPoint(mx, my)) {
+		if tv.treemap.Rect.ContainsHalfClosed(geo.NewPoint(mx, my)) {
 			for _, w := range tv.childWidgets {
 				if w.HandleEvent(ev) {
 					return true

@@ -100,19 +100,16 @@ func (p *Presenter) tick() {
 	}()
 
 	action, errs := p.pollEvent()
-	root, err := p.treeBuilder.Root()
-	if err != nil {
-		// until there is at least one (root) file there is not much to do
-	} else {
+	root, ok := p.treeBuilder.Root()
+	if ok {
 		rootRect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, z2.PointAsR2(p.state.TreemapSize))
 
 		var rootTreemap *treemap.R2Treemap
 		var rootFileTree = *root
 		if p.state.Zoom != nil {
-			node, err := p.treeBuilder.FindNode(p.state.Zoom.Path())
-			if err != nil {
-				// zoom target removed from tree
-				panic(err)
+			node, ok := p.treeBuilder.Find(p.state.Zoom.Path())
+			if !ok {
+				panic("zoom target removed from tree")
 			}
 			rootFileTree = *node
 		}
@@ -126,10 +123,9 @@ func (p *Presenter) tick() {
 				p.state.Selection = nil
 				p.state.TotalFiles = 1 + root.File().NumDescendants
 			} else {
-				node, err := p.treeBuilder.FindNode(p.state.Selection.Path())
-				if err != nil {
-					// selection removed from tree
-					panic(err)
+				node, ok := p.treeBuilder.Find(p.state.Selection.Path())
+				if !ok {
+					panic("selection removed from tree")
 				}
 				p.state.Selection = selection
 				p.state.TotalFiles = 1 + node.File().NumDescendants
@@ -155,7 +151,7 @@ func (p *Presenter) tick() {
 	}
 
 	log.Printf("Sending stateEvent")
-	err = cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Action: action, Errors: errs})
+	err := cancellable.Send(p.ctx, p.stateEvents, StateEvent{State: p.state, Action: action, Errors: errs})
 	if err != nil {
 		p.state.Quit = true
 		return

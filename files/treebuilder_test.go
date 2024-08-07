@@ -15,9 +15,9 @@ func Test_FirstInsertedIsRoot(t *testing.T) {
 	f := files.File{Path: "foo"}
 	tb.Insert(f)
 
-	got, err := tb.Root()
+	got, ok := tb.Root()
 
-	assert.NoError(t, err)
+	assert.True(t, ok)
 	assert.Equal(t, f, got.File())
 }
 
@@ -29,7 +29,7 @@ func Test_InsertChild(t *testing.T) {
 	tb.Insert(bar)
 
 	root, ok := tb.Root()
-	require.NoError(t, ok)
+	require.True(t, ok)
 	child := root.Children()[0]
 	rootPath := root.File().Path
 	childPath := child.File().Path
@@ -94,8 +94,8 @@ func Test_InsertBubblesUpSize(t *testing.T) {
 			}
 			got := make([]int64, len(tt.want))
 			for w := range tt.want {
-				node, ok := tb.FindNode(tt.files[w].Path)
-				require.NoError(t, ok)
+				node, ok := tb.Find(tt.files[w].Path)
+				require.True(t, ok)
 				got[w] = node.File().Size
 			}
 			if !reflect.DeepEqual(got, tt.want) {

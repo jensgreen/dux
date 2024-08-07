@@ -6,23 +6,17 @@ import (
 )
 
 type TreeBuilder struct {
-	root       *FileTree
-	pathLookup map[string]*FileTree
+	root      *FileTree
+	pathIndex map[string]*FileTree
 }
 
-func (tb *TreeBuilder) Root() (*FileTree, error) {
-	if tb.root == nil {
-		return nil, fmt.Errorf("no root")
-	}
-	return tb.root, nil
+func (tb *TreeBuilder) Root() (*FileTree, bool) {
+	return tb.root, tb.root != nil
 }
 
-func (tb *TreeBuilder) FindNode(path string) (*FileTree, error) {
-	node, ok := tb.pathLookup[path]
-	if !ok {
-		return nil, fmt.Errorf("no such node: %s", path)
-	}
-	return node, nil
+func (tb *TreeBuilder) Find(path string) (*FileTree, bool) {
+	node, ok := tb.pathIndex[path]
+	return node, ok
 }
 
 // Insert a File to the hierarchy, update weights and relationships
@@ -33,15 +27,15 @@ func (tb *TreeBuilder) Insert(f File) error {
 	}
 
 	tree := &FileTree{file: f}
-	tb.pathLookup[f.Path] = tree
+	tb.pathIndex[f.Path] = tree
 
-	if _, err := tb.Root(); err != nil {
+	if _, ok := tb.Root(); !ok {
 		tb.root = tree
 		return nil
 	}
 
 	parentPath := f.Dir()
-	parent, ok := tb.pathLookup[parentPath]
+	parent, ok := tb.pathIndex[parentPath]
 	if ok {
 		tree.SetParent(parent)
 		parent.AddChildren(tree)
@@ -56,6 +50,6 @@ func (tb *TreeBuilder) Insert(f File) error {
 
 func NewTreeBuilder() TreeBuilder {
 	return TreeBuilder{
-		pathLookup: make(map[string]*FileTree),
+		pathIndex: make(map[string]*FileTree),
 	}
 }

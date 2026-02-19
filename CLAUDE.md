@@ -15,7 +15,7 @@ live, navigable treemap of disk usage.
 go build -v ./...     # Build all packages
 go test -v ./...      # Run all tests
 go test ./files/...   # Run tests for a specific package
-go test -run TestName ./pkg/...  # Run a specific test
+go test -run TestName ./dux/...  # Run a specific test
 ```
 
 There is no Makefile or task runner. Standard `go` commands are used
@@ -44,8 +44,9 @@ testdata/               Test fixture directory tree
 
 ## Architecture
 
-The application runs three concurrent goroutines coordinated via
-channels:
+The application has three core goroutines coordinated via channels
+(plus additional goroutines for signal handling and tcell's internal
+screen event handler):
 
 1. **File walker** (`files.WalkDir`) - Recursively walks the target
    directory, emitting `FileEvent`s
@@ -85,8 +86,9 @@ splits) wrapped with `Padding`.
   from `cancellable/` to prevent goroutine leaks.
 - **Error handling**: Early returns, `PathError` unwrapping for
   user-facing messages
-- **Dependencies**: Kept minimal - only `tcell/v2` for UI and
-  `testify` for tests
+- **Dependencies**: Kept minimal - primary dependencies are `tcell/v2`
+  for UI, `testify` for tests, and `golang.org/x/exp` for generic
+  utilities
 
 ## CI
 
@@ -108,7 +110,6 @@ to `master`:
 | `FS` | `files` | Maintains file tree with O(1) path lookup |
 | `Treemap[T]` | `treemap` | Generic treemap node with bounds/children |
 | `Tiler` | `treemap/tiling` | Interface for layout algorithms |
-| `Navigate` | `nav` | Directional navigation across tiles |
 
 ## Navigation Directions
 
@@ -125,8 +126,10 @@ tile group is split horizontally or vertically.
 | `j`/`Down` | Navigate down |
 | `k`/`Up` | Navigate up |
 | `l`/`Right` | Navigate right |
-| `Enter` | Zoom into selected tile |
-| `Esc` | Zoom out |
+| `Enter` | Navigate into selected tile |
+| `Backspace` | Navigate out of selected tile |
+| `i` | Zoom in |
+| `o` | Zoom out |
 | `+`/`-` | Increase/decrease visible depth |
 | `Space` | Pause/resume file scanning |
-| `q`/`Ctrl-C` | Quit |
+| `q`/`Esc`/`Ctrl-C` | Quit |

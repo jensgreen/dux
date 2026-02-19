@@ -15,7 +15,7 @@ live, navigable treemap of disk usage.
 go build -v ./...     # Build all packages
 go test -v ./...      # Run all tests
 go test ./files/...   # Run tests for a specific package
-go test -run TestName ./dux/...  # Run a specific test
+go test -run TestName ./...      # Run a specific test
 ```
 
 There is no Makefile or task runner. Standard `go` commands are used

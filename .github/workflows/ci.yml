@@ -18,3 +18,13 @@ jobs:
         go-version-file: go.mod
     - run: go build -v ./...
     - run: go test -v ./...
+    - name: Run benchmarks
+      run: go test -bench=. -benchmem -count=1 -run=^$ ./...
+    - name: Store benchmark results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: "*.txt"
+        retention-days: 90
+        if-no-files-found: ignore

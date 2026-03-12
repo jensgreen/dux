@@ -231,9 +231,6 @@ func (app *App) loop() {
 func (app *App) handleStateEvent(event dux.StateEvent) (quit bool) {
 	if event.State.Quit {
 		log.Printf("App got Quit event, terminating updateLoop!")
-		// TODO we actually the last (and only the last) alternate screen
-		// to end up in the scrollback buffer
-		app.clearAlternateScreen()
 		app.closeTcellEventChannel()
 		return true
 	}
@@ -291,7 +288,9 @@ func (app *App) init() error {
 
 func (app *App) cleanup() {
 	if app.screen != nil {
+		dump := CaptureScreen(app.screen)
 		app.screen.Fini()
+		fmt.Print(dump)
 	}
 }
 

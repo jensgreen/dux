@@ -7,6 +7,34 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+// ANSI terminal escape constants.
+// Reference: ECMA-48 §8.3.117, https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
+const (
+	csi    = "\033[" // Control Sequence Introducer (ESC + '[')
+	sgrEnd = "m"     // SGR (Select Graphic Rendition) sequence terminator
+
+	sgrReset         = "0"
+	sgrBold          = ";1"
+	sgrDim           = ";2"
+	sgrItalic        = ";3"
+	sgrUnderline     = ";4"
+	sgrBlink         = ";5"
+	sgrReverse       = ";7"
+	sgrStrikethrough = ";9"
+
+	sgrFgBase = 30 // standard foreground colors: 30-37
+	sgrBgBase = 40 // standard background colors: 40-47
+
+	sgrColorExtendedOffset = 8  // base+8 = 38 (fg) or 48 (bg) for extended colors
+	sgrColorRGB            = 2  // extended color sub-mode for 24-bit RGB
+	sgrColor256            = 5  // extended color sub-mode for 256-color palette
+	sgrHighIntensityOffset = 60 // offset from standard to bright colors (e.g., 30→90)
+
+	colorIndexMask        = 0xff // mask to extract palette index from tcell.Color
+	colorStandardCount    = 8    // standard colors: indices 0-7
+	colorHighIntensityEnd = 16   // high-intensity colors: indices 8-15
+)
+
 // CaptureScreen reads the contents of a tcell screen buffer and returns a
 // string with ANSI escape sequences that reproduces the screen's appearance.
 func CaptureScreen(screen tcell.Screen) string {
@@ -66,7 +94,7 @@ func CaptureScreen(screen tcell.Screen) string {
 
 		// Reset style at end of line to prevent background bleed.
 		if styleWritten {
-			buf.WriteString("\033[0m")
+			buf.WriteString(csi + sgrReset + sgrEnd)
 			styleWritten = false
 		}
 		if y < h-1 {
@@ -81,54 +109,54 @@ func CaptureScreen(screen tcell.Screen) string {
 func writeStyle(buf *strings.Builder, style tcell.Style) {
 	fg, bg, attrs := style.Decompose()
 
-	buf.WriteString("\033[0")
+	buf.WriteString(csi + sgrReset)
 
 	if attrs&tcell.AttrBold != 0 {
-		buf.WriteString(";1")
+		buf.WriteString(sgrBold)
 	}
 	if attrs&tcell.AttrDim != 0 {
-		buf.WriteString(";2")
+		buf.WriteString(sgrDim)
 	}
 	if attrs&tcell.AttrItalic != 0 {
-		buf.WriteString(";3")
+		buf.WriteString(sgrItalic)
 	}
 	if attrs&tcell.AttrUnderline != 0 {
-		buf.WriteString(";4")
+		buf.WriteString(sgrUnderline)
 	}
 	if attrs&tcell.AttrBlink != 0 {
-		buf.WriteString(";5")
+		buf.WriteString(sgrBlink)
 	}
 	if attrs&tcell.AttrReverse != 0 {
-		buf.WriteString(";7")
+		buf.WriteString(sgrReverse)
 	}
 	if attrs&tcell.AttrStrikeThrough != 0 {
-		buf.WriteString(";9")
+		buf.WriteString(sgrStrikethrough)
 	}
 
-	writeColor(buf, fg, 30)
-	writeColor(buf, bg, 40)
+	writeColor(buf, fg, sgrFgBase)
+	writeColor(buf, bg, sgrBgBase)
 
-	buf.WriteRune('m')
+	buf.WriteString(sgrEnd)
 }
 
-// writeColor appends SGR parameters for a color. base is 30 for foreground
-// or 40 for background.
+// writeColor appends SGR parameters for a color. base is sgrFgBase for
+// foreground or sgrBgBase for background.
 func writeColor(buf *strings.Builder, c tcell.Color, base int) {
 	if !c.Valid() {
 		return
 	}
 	if c.IsRGB() {
 		r, g, b := c.RGB()
-		fmt.Fprintf(buf, ";%d;2;%d;%d;%d", base+8, r, g, b)
+		fmt.Fprintf(buf, ";%d;%d;%d;%d;%d", base+sgrColorExtendedOffset, sgrColorRGB, r, g, b)
 		return
 	}
-	idx := int(c & 0xff)
+	idx := int(c & colorIndexMask)
 	switch {
-	case idx < 8:
+	case idx < colorStandardCount:
 		fmt.Fprintf(buf, ";%d", base+idx)
-	case idx < 16:
-		fmt.Fprintf(buf, ";%d", base+60+idx-8)
+	case idx < colorHighIntensityEnd:
+		fmt.Fprintf(buf, ";%d", base+sgrHighIntensityOffset+idx-colorStandardCount)
 	default:
-		fmt.Fprintf(buf, ";%d;5;%d", base+8, idx)
+		fmt.Fprintf(buf, ";%d;%d;%d", base+sgrColorExtendedOffset, sgrColor256, idx)
 	}
 }

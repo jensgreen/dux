@@ -287,9 +287,12 @@ func (app *App) init() error {
 }
 
 func (app *App) cleanup() {
-	if app.screen != nil {
-		dump := CaptureScreen(app.screen)
-		app.screen.Fini()
+	scr := app.screen
+	if scr != nil {
+		// Make cleanup idempotent: after this point, app.screen is considered finalized.
+		app.screen = nil
+		dump := CaptureScreen(scr)
+		scr.Fini()
 		fmt.Print(dump)
 	}
 }

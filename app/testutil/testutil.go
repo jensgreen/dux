@@ -8,9 +8,9 @@ import (
 )
 
 func InitSimScreen(t *testing.T, width int, height int) tcell.SimulationScreen {
+	t.Helper()
 	screen := tcell.NewSimulationScreen("")
-	err := screen.Init()
-	if err != nil {
+	if err := screen.Init(); err != nil {
 		t.Fatal(err)
 	}
 	screen.SetSize(width, height)

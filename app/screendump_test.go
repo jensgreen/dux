@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/jensgreen/dux/app/testutil"
 	"github.com/gdamore/tcell/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,18 +43,8 @@ var (
 	bgBlue   = sgrBg(12)
 )
 
-func initScreen(t *testing.T, w, h int) tcell.SimulationScreen {
-	t.Helper()
-	screen := tcell.NewSimulationScreen("")
-	if err := screen.Init(); err != nil {
-		t.Fatal(err)
-	}
-	screen.SetSize(w, h)
-	return screen
-}
-
 func TestCaptureScreen_PlainText(t *testing.T) {
-	screen := initScreen(t, 10, 2)
+	screen := testutil.InitSimScreen(t, 10, 2)
 	putString(screen, 0, 0, "hello", tcell.StyleDefault)
 	putString(screen, 0, 1, "world", tcell.StyleDefault)
 	screen.Show()
@@ -63,7 +54,7 @@ func TestCaptureScreen_PlainText(t *testing.T) {
 }
 
 func TestCaptureScreen_TrailingSpacesTrimmed(t *testing.T) {
-	screen := initScreen(t, 10, 1)
+	screen := testutil.InitSimScreen(t, 10, 1)
 	putString(screen, 0, 0, "hi", tcell.StyleDefault)
 	screen.Show()
 
@@ -72,7 +63,7 @@ func TestCaptureScreen_TrailingSpacesTrimmed(t *testing.T) {
 }
 
 func TestCaptureScreen_TrailingSpacesWithColorPreserved(t *testing.T) {
-	screen := initScreen(t, 5, 1)
+	screen := testutil.InitSimScreen(t, 5, 1)
 	style := tcell.StyleDefault.Background(tcell.ColorBlue)
 	for x := 0; x < 5; x++ {
 		screen.SetContent(x, 0, ' ', nil, style)
@@ -84,7 +75,7 @@ func TestCaptureScreen_TrailingSpacesWithColorPreserved(t *testing.T) {
 }
 
 func TestCaptureScreen_ForegroundColor(t *testing.T) {
-	screen := initScreen(t, 5, 1)
+	screen := testutil.InitSimScreen(t, 5, 1)
 	style := tcell.StyleDefault.Foreground(tcell.ColorRed)
 	putString(screen, 0, 0, "red", style)
 	screen.Show()
@@ -94,7 +85,7 @@ func TestCaptureScreen_ForegroundColor(t *testing.T) {
 }
 
 func TestCaptureScreen_BoldItalicYellow(t *testing.T) {
-	screen := initScreen(t, 5, 1)
+	screen := testutil.InitSimScreen(t, 5, 1)
 	style := tcell.StyleDefault.Bold(true).Italic(true).Foreground(tcell.ColorYellow)
 	putString(screen, 0, 0, "hi", style)
 	screen.Show()
@@ -104,7 +95,7 @@ func TestCaptureScreen_BoldItalicYellow(t *testing.T) {
 }
 
 func TestCaptureScreen_StyleChangeMidRow(t *testing.T) {
-	screen := initScreen(t, 6, 1)
+	screen := testutil.InitSimScreen(t, 6, 1)
 	putString(screen, 0, 0, "ab", tcell.StyleDefault.Foreground(tcell.ColorRed))
 	putString(screen, 2, 0, "cd", tcell.StyleDefault.Foreground(tcell.ColorBlue))
 	screen.Show()
@@ -114,7 +105,7 @@ func TestCaptureScreen_StyleChangeMidRow(t *testing.T) {
 }
 
 func TestCaptureScreen_BackgroundAndForeground(t *testing.T) {
-	screen := initScreen(t, 3, 1)
+	screen := testutil.InitSimScreen(t, 3, 1)
 	style := tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.ColorGreen)
 	putString(screen, 0, 0, "bar", style)
 	screen.Show()
@@ -124,7 +115,7 @@ func TestCaptureScreen_BackgroundAndForeground(t *testing.T) {
 }
 
 func TestCaptureScreen_StandardColor(t *testing.T) {
-	screen := initScreen(t, 5, 1)
+	screen := testutil.InitSimScreen(t, 5, 1)
 	// ColorBlack (index 0) is a standard color, should use base range (30-37).
 	style := tcell.StyleDefault.Foreground(tcell.ColorBlack)
 	putString(screen, 0, 0, "dark", style)
@@ -135,7 +126,7 @@ func TestCaptureScreen_StandardColor(t *testing.T) {
 }
 
 func TestCaptureScreen_HighIntensityColor(t *testing.T) {
-	screen := initScreen(t, 5, 1)
+	screen := testutil.InitSimScreen(t, 5, 1)
 	// ColorRed (index 9) is a high-intensity color, should use bright range (90-97).
 	style := tcell.StyleDefault.Foreground(tcell.ColorRed)
 	putString(screen, 0, 0, "glow", style)
@@ -146,7 +137,7 @@ func TestCaptureScreen_HighIntensityColor(t *testing.T) {
 }
 
 func TestCaptureScreen_StandardAndHighIntensityBackground(t *testing.T) {
-	screen := initScreen(t, 6, 1)
+	screen := testutil.InitSimScreen(t, 6, 1)
 	// ColorGreen (index 2) is standard, ColorBlue (index 12) is high-intensity.
 	putString(screen, 0, 0, "std", tcell.StyleDefault.Background(tcell.ColorGreen))
 	putString(screen, 3, 0, "brt", tcell.StyleDefault.Background(tcell.ColorBlue))
@@ -157,7 +148,7 @@ func TestCaptureScreen_StandardAndHighIntensityBackground(t *testing.T) {
 }
 
 func TestCaptureScreen_EmptyScreen(t *testing.T) {
-	screen := initScreen(t, 5, 2)
+	screen := testutil.InitSimScreen(t, 5, 2)
 	screen.Show()
 
 	got := CaptureScreen(screen)
@@ -166,7 +157,7 @@ func TestCaptureScreen_EmptyScreen(t *testing.T) {
 }
 
 func TestCaptureScreen_ZeroSize(t *testing.T) {
-	screen := initScreen(t, 0, 0)
+	screen := testutil.InitSimScreen(t, 0, 0)
 	got := CaptureScreen(screen)
 	assert.Equal(t, "", got)
 }

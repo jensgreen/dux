@@ -12,8 +12,8 @@ live, navigable treemap of disk usage.
 ## Build & Test Commands
 
 ```sh
-go build -v ./...     # Build all packages
-go test -v ./...      # Run all tests
+go build ./...     # Build all packages
+go test ./...      # Run all tests
 go test ./files/...   # Run tests for a specific package
 go test -run TestName ./...      # Run a specific test
 ```

@@ -8,7 +8,7 @@ import (
 )
 
 func printUsage(w io.Writer) {
-	usage := "Usage: %s [--help] [DIRECTORY]\n"
+	usage := "Usage: %s [--exit-after-scan] [--help] [DIRECTORY]\n"
 	_, _ = fmt.Fprintf(w, usage, os.Args[0])
 }
 
@@ -17,12 +17,13 @@ func printHelp(w io.Writer) {
 	desc := "Visually summarize disk usage of DIRECTORY (the current directory by default).\n"
 	desc += "\n"
 	desc += "Options:\n"
-	desc += "      --help     display this help and exit\n"
+	desc += "      --exit-after-scan  exit after file scanning completes\n"
+	desc += "      --help             display this help and exit\n"
 	fmt.Fprintln(w, desc)
 }
 
 // ArgsOrExit returns valid parameters, or, on either --help or invalid input, exits the program
-func ArgsOrExit() (path string, debug bool) {
+func ArgsOrExit() (path string, debug bool, exitAfterScan bool) {
 	var (
 		args       []string = os.Args[1:]
 		help       bool
@@ -35,6 +36,8 @@ func ArgsOrExit() (path string, debug bool) {
 			help = true
 		case arg == "--debug":
 			debug = true
+		case arg == "--exit-after-scan":
+			exitAfterScan = true
 		case strings.HasPrefix(arg, "--"):
 			unknownOpt = arg
 		default:
@@ -48,7 +51,7 @@ func ArgsOrExit() (path string, debug bool) {
 	if path == "" {
 		path = "."
 	}
-	return path, debug
+	return path, debug, exitAfterScan
 }
 
 func maybeExit(unknownOpt string, help bool) (exit bool, code int) {

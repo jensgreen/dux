@@ -13,14 +13,16 @@ import (
 )
 
 type Presenter struct {
-	ctx         context.Context
-	shutdown    context.CancelFunc
-	fileEvents  <-chan files.FileEvent
-	commands    <-chan Command
-	stateEvents chan<- StateEvent
-	tiler       tiling.Tiler
-	state       State
-	fs          *files.FS
+	ctx            context.Context
+	shutdown       context.CancelFunc
+	fileEvents     <-chan files.FileEvent
+	commands       <-chan Command
+	stateEvents    chan<- StateEvent
+	tiler          tiling.Tiler
+	state          State
+	fs             *files.FS
+	exitAfterScan bool
+	screenReady   bool
 }
 
 func NewPresenter(
@@ -32,16 +34,18 @@ func NewPresenter(
 	initialState State,
 	tiler tiling.Tiler,
 	fs *files.FS,
+	exitAfterScan bool,
 ) Presenter {
 	return Presenter{
-		ctx:         ctx,
-		shutdown:    shutdown,
-		fileEvents:  fileEvents,
-		commands:    commands,
-		stateEvents: stateEvents,
-		state:       initialState,
-		tiler:       tiler,
-		fs:          fs,
+		ctx:           ctx,
+		shutdown:      shutdown,
+		fileEvents:    fileEvents,
+		commands:      commands,
+		stateEvents:   stateEvents,
+		state:         initialState,
+		tiler:         tiler,
+		fs:            fs,
+		exitAfterScan: exitAfterScan,
 	}
 }
 
@@ -52,6 +56,10 @@ func (p *Presenter) Loop() {
 }
 
 func (p *Presenter) pollEvent() (Action, []error) {
+	if p.exitAfterScan && p.screenReady && !p.state.IsWalkingFiles {
+		p.state.Quit = true
+		return ActionNone, nil
+	}
 	var errs []error
 	var action Action
 	if p.state.Pause {
@@ -162,5 +170,10 @@ func (p *Presenter) tick() {
 
 func (p *Presenter) processCommand(cmd Command) (State, Action) {
 	log.Printf("Executing command %T", cmd)
+	if _, ok := cmd.(Resize); ok {
+		// tcell sends a resize when the screen is initialized.
+		// Track this so that --exit-after-scan will not exit before the screen has been drawn at least once.
+		p.screenReady = true
+	}
 	return cmd.Execute(p.state)
 }

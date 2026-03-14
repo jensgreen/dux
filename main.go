@@ -14,14 +14,14 @@ import (
 )
 
 func main() {
-	path, debug := app.ArgsOrExit()
+	path, debug, exitAfterScan := app.ArgsOrExit()
 	logging.Setup(debug)
 
 	fileEvents := make(chan files.FileEvent)
 	stateEvents := make(chan dux.StateEvent, 1)
 	commands := make(chan dux.Command, 1)
 
-	initState := dux.State{}
+	initState := dux.State{IsWalkingFiles: true}
 	shutdownCtx, shutdownFunc := context.WithCancel(context.Background())
 	go app.SignalHandler(commands, shutdownFunc)
 
@@ -34,6 +34,7 @@ func main() {
 		initState,
 		tiling.WithPadding(tiling.SliceAndDice{}, tiling.Padding{Top: 1, Right: 1, Bottom: 1, Left: 1}),
 		files.NewFS(),
+		exitAfterScan,
 	)
 	app := app.NewApp(shutdownCtx, path, stateEvents, commands)
 

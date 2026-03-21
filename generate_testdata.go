@@ -1,7 +1,10 @@
 //go:build ignore
 
-//go:generate bash -c "mkdir -p debian-trixie/root && cat debian-trixie/files.txt | go run gentestdata.go debian-trixie/root"
-
+// Generates test fixture directory trees from file listings. File listings
+// are stored in testdata/generated/ — see generate-input.sh for how they are
+// captured.
+//
+// Run via: go generate ./...
 package main
 
 import (

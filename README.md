@@ -49,3 +49,22 @@ Options:
 ```
 
 Use `+`/`-` to increase/decrease depth, and `q` or `Ctrl-C` to quit.
+
+# Development
+
+```sh
+go build ./...   # Build
+go test ./...    # Test
+```
+
+## Generating test data
+
+Realistic filesystem fixtures can be generated for benchmarking:
+
+```sh
+go generate ./...
+```
+
+This creates null-byte file trees under `testdata/generated/` matching
+real filesystem layouts (e.g. Debian Trixie). See
+[`testdata/generated/README.md`](testdata/generated/README.md) for details.

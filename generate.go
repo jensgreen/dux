@@ -4,4 +4,4 @@
 // the directive must live here in a file the toolchain processes.
 package main
 
-//go:generate bash -c "mkdir -p testdata/generated/debian-trixie/root && cat testdata/generated/debian-trixie/files.txt | go run generate_testdata.go testdata/generated/debian-trixie/root"
+//go:generate bash -c "cat testdata/generated/debian-trixie/files.txt | go run generate_testdata.go testdata/generated/debian-trixie/root"

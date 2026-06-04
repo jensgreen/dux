@@ -13,14 +13,14 @@ import (
 )
 
 type Presenter struct {
-	ctx            context.Context
-	shutdown       context.CancelFunc
-	fileEvents     <-chan files.FileEvent
-	commands       <-chan Command
-	stateEvents    chan<- StateEvent
-	tiler          tiling.Tiler
-	state          State
-	fs             *files.FS
+	ctx           context.Context
+	shutdown      context.CancelFunc
+	fileEvents    <-chan files.FileEvent
+	commands      <-chan Command
+	stateEvents   chan<- StateEvent
+	layouts       []tiling.Layout
+	state         State
+	fs            *files.FS
 	exitAfterScan bool
 	screenReady   bool
 }
@@ -32,10 +32,16 @@ func NewPresenter(
 	commands <-chan Command,
 	stateEvents chan<- StateEvent,
 	initialState State,
-	tiler tiling.Tiler,
+	layouts []tiling.Layout,
 	fs *files.FS,
 	exitAfterScan bool,
 ) Presenter {
+	if len(layouts) > 0 {
+		if initialState.LayoutIndex < 0 || initialState.LayoutIndex >= len(layouts) {
+			initialState.LayoutIndex = 0
+		}
+		initialState.LayoutName = layouts[initialState.LayoutIndex].Name
+	}
 	return Presenter{
 		ctx:           ctx,
 		shutdown:      shutdown,
@@ -43,7 +49,7 @@ func NewPresenter(
 		commands:      commands,
 		stateEvents:   stateEvents,
 		state:         initialState,
-		tiler:         tiler,
+		layouts:       layouts,
 		fs:            fs,
 		exitAfterScan: exitAfterScan,
 	}
@@ -122,7 +128,7 @@ func (p *Presenter) tick() {
 			}
 			rootFileTree = *node
 		}
-		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.tiler, p.state.MaxDepth)
+		rootTreemap = treemap.NewR2Treemap(rootFileTree, rootRect, p.layouts[p.state.LayoutIndex].Tiler, p.state.MaxDepth)
 
 		if p.state.Selection != nil {
 			selection, err := rootTreemap.FindNode(p.state.Selection.Path())
@@ -174,6 +180,13 @@ func (p *Presenter) processCommand(cmd Command) (State, Action) {
 		// tcell sends a resize when the screen is initialized.
 		// Track this so that --exit-after-scan will not exit before the screen has been drawn at least once.
 		p.screenReady = true
+	}
+	if _, ok := cmd.(CycleLayout); ok && len(p.layouts) > 0 {
+		// The layout registry lives on the Presenter, so index arithmetic is
+		// resolved here rather than in CycleLayout.Execute.
+		p.state.LayoutIndex = (p.state.LayoutIndex + 1) % len(p.layouts)
+		p.state.LayoutName = p.layouts[p.state.LayoutIndex].Name
+		return p.state, ActionNone
 	}
 	return cmd.Execute(p.state)
 }

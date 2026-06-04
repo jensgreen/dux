@@ -109,6 +109,15 @@ func (cmd Navigate) Execute(state State) (State, Action) {
 	return state, ActionNone
 }
 
+// CycleLayout advances to the next tiling layout. The actual index arithmetic
+// is handled by the Presenter, which owns the layout registry; Execute is a
+// pass-through so the command still satisfies the Command interface.
+type CycleLayout struct{}
+
+func (CycleLayout) Execute(state State) (State, Action) {
+	return state, ActionNone
+}
+
 type TogglePause struct{}
 
 func (cmd TogglePause) Execute(state State) (State, Action) {

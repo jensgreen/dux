@@ -102,7 +102,7 @@ func TestSliceAndDice_SliceOrientationDependsOnDepth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tiler := SliceAndDice{}
+			tiler := SliceAndDice()
 			gotTiles, gotSpillage := tiler.Tile(square, *fileTree, tt.depth)
 			if len(gotTiles) == 0 {
 				t.Errorf("no tiles")

@@ -19,6 +19,10 @@ func (t mockTiler) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles
 	return make([]tiling.Tile, len(fileTree.Children())), r2.Rect{}
 }
 
+func mockLayouts() []tiling.Layout {
+	return []tiling.Layout{{Name: "mock", Tiler: mockTiler{}}}
+}
+
 func cancel() {}
 
 func Test_TickProducesStateEvents(t *testing.T) {
@@ -27,7 +31,7 @@ func Test_TickProducesStateEvents(t *testing.T) {
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 	close(fileEvents)
 
-	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, nil, files.NewFS(), false)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, mockLayouts(), files.NewFS(), false)
 	pres.tick()
 
 	stateEvent, ok := <-stateEvents
@@ -44,7 +48,7 @@ func Test_WalkDirConcurrencyIntegration(t *testing.T) {
 	}()
 
 	stateEvents := make(chan StateEvent)
-	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockTiler{}, files.NewFS(), false)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockLayouts(), files.NewFS(), false)
 	go pres.Loop()
 
 	for e := range stateEvents {
@@ -67,7 +71,7 @@ func Test_EmitsStateEventForRootOnEachFileEvent(t *testing.T) {
 	fileEvents <- files.FileEvent{File: child}
 	close(fileEvents)
 
-	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockTiler{}, files.NewFS(), false)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, State{}, mockLayouts(), files.NewFS(), false)
 	pres.tick() // foo
 	pres.tick() // foo/bar
 	pres.tick() // closed
@@ -86,7 +90,7 @@ func Test_EmitsStateEventOnFileEvent(t *testing.T) {
 
 	fileEvents <- files.FileEvent{File: files.File{Path: "foo"}}
 
-	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, mockTiler{}, files.NewFS(), false)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, nil, stateEvents, State{}, mockLayouts(), files.NewFS(), false)
 	pres.tick()
 	_, ok := <-stateEvents
 	assert.True(t, ok, "no StateEvent sent")
@@ -101,7 +105,7 @@ func Test_ExitAfterScanSetsQuitOnChannelClose(t *testing.T) {
 	close(fileEvents)
 
 	initState := State{IsWalkingFiles: true}
-	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, initState, mockTiler{}, files.NewFS(), true)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, initState, mockLayouts(), files.NewFS(), true)
 	pres.tick() // processes file event
 
 	// Simulate the initial resize from tcell
@@ -131,7 +135,7 @@ func Test_ExitAfterScanWaitsForResize(t *testing.T) {
 
 	// TreemapSize starts at zero (no resize yet)
 	initState := State{IsWalkingFiles: true}
-	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, initState, mockTiler{}, files.NewFS(), true)
+	pres := NewPresenter(context.Background(), cancel, fileEvents, commands, stateEvents, initState, mockLayouts(), files.NewFS(), true)
 	pres.tick() // processes file event
 	pres.tick() // processes channel close, sets IsWalkingFiles=false
 
@@ -155,10 +159,33 @@ func Test_ExitAfterScanWaitsForResize(t *testing.T) {
 	assert.True(t, event4.State.Quit, "should quit after resize when screenReady")
 }
 
+func Test_CycleLayoutAdvancesLayout(t *testing.T) {
+	stateEvents := make(chan StateEvent, 1)
+	commands := make(chan Command, 1)
+	layouts := []tiling.Layout{
+		{Name: "first", Tiler: mockTiler{}},
+		{Name: "second", Tiler: mockTiler{}},
+	}
+	pres := NewPresenter(context.Background(), cancel, nil, commands, stateEvents, State{}, layouts, files.NewFS(), false)
+	assert.Equal(t, "first", pres.state.LayoutName, "initial layout name not set")
+
+	commands <- CycleLayout{}
+	pres.tick()
+	update := <-stateEvents
+	assert.Equal(t, 1, update.State.LayoutIndex)
+	assert.Equal(t, "second", update.State.LayoutName)
+
+	commands <- CycleLayout{}
+	pres.tick()
+	update = <-stateEvents
+	assert.Equal(t, 0, update.State.LayoutIndex, "expected wrap-around to first layout")
+	assert.Equal(t, "first", update.State.LayoutName)
+}
+
 func Test_QuitCommandUpdatesQuitState(t *testing.T) {
 	stateEvents := make(chan StateEvent, 1)
 	commands := make(chan Command, 1)
-	pres := NewPresenter(context.Background(), cancel, nil, commands, stateEvents, State{}, mockTiler{}, files.NewFS(), false)
+	pres := NewPresenter(context.Background(), cancel, nil, commands, stateEvents, State{}, mockLayouts(), files.NewFS(), false)
 	commands <- Quit{}
 	pres.tick()
 

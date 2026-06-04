@@ -53,6 +53,7 @@ func NewStatusBar(commands chan<- dux.Command) *StatusBar {
 		"<enter/bs> up/down",
 		"<io> zoom",
 		"<+-> depth",
+		"<t> layout",
 		"<q> quit",
 		// "<?> help",
 	}, " | ")

@@ -2,7 +2,6 @@ package tiling
 
 import (
 	"github.com/jensgreen/dux/files"
-	"github.com/jensgreen/dux/geo/r1"
 	"github.com/jensgreen/dux/geo/r2"
 )
 
@@ -23,74 +22,6 @@ type Tiler interface {
 type Tile struct {
 	File files.FileTree
 	Rect r2.Rect
-}
-
-type VerticalSplit struct{}
-
-func (VerticalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
-	tiles = []Tile{}
-
-	totalWeight := float64(fileTree.File().Size)
-	nextMinX := rect.Lo().X
-	for _, ftree := range fileTree.Children() {
-		weightFactor := float64(ftree.File().Size) / totalWeight
-		size := rect.Size()
-		dx := weightFactor * float64(size.X)
-		candidate := r2.Rect{
-			X: r1.Interval{Lo: nextMinX, Hi: nextMinX + dx},
-			Y: rect.Y,
-		}
-
-		if dx < MINIMUM_WIDTH {
-			// Don't show this tile, it's too small.
-			// Grow spillage from the right.
-			spillage.X.Lo -= candidate.X.Length()
-		} else {
-			tiles = append(tiles, Tile{File: *ftree, Rect: candidate})
-			nextMinX = candidate.X.Hi
-		}
-	}
-	return tiles, spillage
-}
-
-type HorizontalSplit struct{}
-
-func (HorizontalSplit) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
-	tiles = []Tile{}
-
-	totalWeight := float64(fileTree.File().Size)
-	nextMinY := rect.Lo().Y
-	for _, ftree := range fileTree.Children() {
-		weightFactor := float64(ftree.File().Size) / totalWeight
-		size := rect.Size()
-		dy := weightFactor * float64(size.Y)
-		candidate := r2.Rect{
-			X: rect.X,
-			Y: r1.Interval{Lo: nextMinY, Hi: nextMinY + dy},
-		}
-		if dy < MINIMUM_HEIGHT {
-			// Don't show this tile, it's too small.
-			// grow spillage from the bottom.
-			spillage.Y.Lo -= candidate.Y.Length()
-		} else {
-			tiles = append(tiles, Tile{File: *ftree, Rect: candidate})
-			nextMinY = candidate.Y.Hi
-		}
-	}
-	return tiles, spillage
-}
-
-// SliceAndDice alternates between HorizontalSplit and VerticalSplit based on depth
-type SliceAndDice struct{}
-
-func (sd SliceAndDice) Tile(rect r2.Rect, fileTree files.FileTree, depth int) (tiles []Tile, spillage r2.Rect) {
-	var tiler Tiler
-	if depth%2 == 0 {
-		tiler = HorizontalSplit{}
-	} else {
-		tiler = VerticalSplit{}
-	}
-	return tiler.Tile(rect, fileTree, depth)
 }
 
 type Padding struct {

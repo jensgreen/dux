@@ -12,7 +12,7 @@ import (
 func TestTreemapWithTiler_NoChildren(t *testing.T) {
 	tree := files.FileTree{}
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := NewR2Treemap(tree, rect, tiling.VerticalSplit{}, 0)
+	got := NewR2Treemap(tree, rect, tiling.VerticalSplit(), 0)
 
 	expected := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
 	if !r2.RectApproxEqual(expected, got.Rect) {
@@ -30,7 +30,7 @@ func TestTreemapWithTiler_SplitsCorrectly(t *testing.T) {
 		files.NewFileTree(files.File{Path: "bar", Size: 1}),
 	)
 	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40})
-	got := NewR2Treemap(*fileTree, rect, tiling.VerticalSplit{}, 0)
+	got := NewR2Treemap(*fileTree, rect, tiling.VerticalSplit(), 0)
 
 	if len(got.Children) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got.Children))
@@ -50,7 +50,7 @@ func TestVerticalSplit_SplitsTwoEqualWeightsInHalfVertically(t *testing.T) {
 		files.NewFileTree(files.File{Size: 1}),
 		files.NewFileTree(files.File{Size: 1}),
 	)
-	got, _ := tiling.VerticalSplit{}.Tile(rect, *fileTree, 0)
+	got, _ := tiling.VerticalSplit().Tile(rect, *fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
@@ -70,7 +70,7 @@ func TestHorizontalSplit_SplitsTwoEqualWeightsInHalfHorizontally(t *testing.T) {
 		files.NewFileTree(files.File{Size: 1}),
 		files.NewFileTree(files.File{Size: 1}),
 	)
-	got, _ := tiling.HorizontalSplit{}.Tile(rect, *fileTree, 0)
+	got, _ := tiling.HorizontalSplit().Tile(rect, *fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))
@@ -90,7 +90,7 @@ func TestHorizontalSplit_WorksWithNonZeroX(t *testing.T) {
 		files.NewFileTree(files.File{Size: 1}),
 		files.NewFileTree(files.File{Size: 1}),
 	)
-	got, _ := tiling.HorizontalSplit{}.Tile(rect, *fileTree, 0)
+	got, _ := tiling.HorizontalSplit().Tile(rect, *fileTree, 0)
 
 	if !r2.RectApproxEqual(got[0].Rect, r2.RectFromPoints(r2.Point{X: 10, Y: 0}, r2.Point{X: 50, Y: 20})) {
 		t.Errorf("got %v", got[0].Rect)
@@ -107,7 +107,7 @@ func TestVerticalSplit_SplitsTwoNoRemainder(t *testing.T) {
 		files.NewFileTree(files.File{Size: 1}),
 		files.NewFileTree(files.File{Size: 2}),
 	)
-	got, _ := tiling.VerticalSplit{}.Tile(rect, *fileTree, 0)
+	got, _ := tiling.VerticalSplit().Tile(rect, *fileTree, 0)
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 children, got %v", len(got))

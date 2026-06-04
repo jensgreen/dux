@@ -69,9 +69,15 @@ The codebase uses two coordinate spaces for treemaps:
 
 ### Tiling
 
-Treemap layout is pluggable via the `tiling.Tiler` interface. The
-default algorithm is `SliceAndDice` (alternating horizontal/vertical
-splits) wrapped with `Padding`.
+Treemap layout is pluggable via the `tiling.Tiler` interface. Layouts
+are points in a five-functor design space (order, size, score, recurse,
+phrase) implemented by the `tiling.Sequential` tiler — see
+`treemap/tiling/functors.go` and the reference paper, Baudel &
+Broeksema, "Capturing the Design Space of Sequential Space-Filling
+Layouts" (IEEE TVCG 2012). Named layouts (`SliceAndDice`, `Strip`,
+`Squarified`, `Pivot`) live in `treemap/tiling/layouts.go`, each wrapped
+with `Padding`. The user cycles between them at runtime with `t`; the
+registry is `tiling.DefaultLayouts`.
 
 ## Code Conventions
 
@@ -131,5 +137,6 @@ tile group is split horizontally or vertically.
 | `i` | Zoom in |
 | `o` | Zoom out |
 | `+`/`-` | Increase/decrease visible depth |
+| `t` | Cycle tiling layout (slice & dice, strip, squarified, pivot) |
 | `Space` | Pause/resume file scanning |
 | `q`/`Esc`/`Ctrl-C` | Quit |

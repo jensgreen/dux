@@ -16,6 +16,8 @@ type State struct {
 	TotalFiles     int
 	IsWalkingFiles bool
 	Pause          bool
+	LayoutIndex    int
+	LayoutName     string
 }
 
 type Action int

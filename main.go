@@ -32,7 +32,7 @@ func main() {
 		commands,
 		stateEvents,
 		initState,
-		tiling.WithPadding(tiling.SliceAndDice{}, tiling.Padding{Top: 1, Right: 1, Bottom: 1, Left: 1}),
+		tiling.DefaultLayouts(tiling.Padding{Top: 1, Right: 1, Bottom: 1, Left: 1}),
 		files.NewFS(),
 		exitAfterScan,
 	)

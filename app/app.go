@@ -99,6 +99,9 @@ func (app *App) handleKey(ev *tcell.EventKey) bool {
 			cmd = dux.ZoomIn{}
 		case 'o':
 			cmd = dux.ZoomOut{}
+		// layout
+		case 't':
+			cmd = dux.CycleLayout{}
 		// misc
 		case ' ':
 			cmd = dux.TogglePause{}

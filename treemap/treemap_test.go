@@ -1,6 +1,7 @@
 package treemap
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/jensgreen/dux/files"
@@ -8,6 +9,67 @@ import (
 	"github.com/jensgreen/dux/treemap/tiling"
 	"github.com/stretchr/testify/assert"
 )
+
+// buildTree constructs a 3-level file tree (root -> dirs -> files) whose
+// directory sizes equal the sum of their children, matching dux's invariant.
+func buildTree() files.FileTree {
+	dirSizes := [][]int64{
+		{50, 30, 20, 15, 12, 10},
+		{40, 25, 13, 9, 7},
+		{33, 22, 11, 6, 4, 3},
+		{18, 9, 5},
+	}
+	root := files.NewFileTree(files.File{Path: "/root"})
+	var total int64
+	for d, sizes := range dirSizes {
+		dir := files.NewFileTree(files.File{Path: fmt.Sprintf("/root/d%d", d)})
+		var ds int64
+		for i, s := range sizes {
+			ds += s
+			dir.AddChildren(files.NewFileTree(files.File{Path: fmt.Sprintf("/root/d%d/f%d", d, i), Size: s}))
+		}
+		df := dir.File()
+		df.Size = ds
+		total += ds
+		ndir := files.NewFileTree(df)
+		ndir.AddChildren(dir.Children()...)
+		root.AddChildren(ndir)
+	}
+	rf := root.File()
+	rf.Size = total
+	out := files.NewFileTree(rf)
+	out.AddChildren(root.Children()...)
+	return *out
+}
+
+// TestNewR2Treemap_NoSubMinimumNodes guards against the cross-axis sliver bug at
+// the level the app actually renders: the recursive treemap with real padding.
+// A tile that is thin on the cross axis used to be kept; recursing into it then
+// hit padding that emptied its rect, silently dropping the tile's whole subtree.
+// Every rendered node must instead be at least the minimum size on both axes.
+func TestNewR2Treemap_NoSubMinimumNodes(t *testing.T) {
+	tree := buildTree()
+	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 80, Y: 40})
+	pad := tiling.Padding{Top: 1, Right: 1, Bottom: 1, Left: 1}
+
+	var check func(t *testing.T, name string, tm *R2Treemap, root bool)
+	check = func(t *testing.T, name string, tm *R2Treemap, root bool) {
+		if !root {
+			w, h := tm.Rect.X.Length(), tm.Rect.Y.Length()
+			if w < tiling.MINIMUM_WIDTH || h < tiling.MINIMUM_HEIGHT {
+				t.Errorf("%s: rendered sub-minimum node %s at %.2f x %.2f", name, tm.File.Path, w, h)
+			}
+		}
+		for _, c := range tm.Children {
+			check(t, name, c, false)
+		}
+	}
+
+	for _, l := range tiling.DefaultLayouts(pad) {
+		tm := NewR2Treemap(tree, rect, l.Tiler, 0)
+		check(t, l.Name, tm, true)
+	}
+}
 
 func TestTreemapWithTiler_NoChildren(t *testing.T) {
 	tree := files.FileTree{}

@@ -123,6 +123,70 @@ func TestSquarified_ImprovesAspectRatio(t *testing.T) {
 	}
 }
 
+// TestLayouts_NoSubMinimumTiles checks that no layout ever emits a tile that is
+// below the minimum displayable size on *either* axis. The hiding check in
+// stackItems historically only tested the stacking axis, which is sound for
+// slice & dice (its single chunk always spans the full cross dimension) but let
+// multi-chunk layouts (strip, squarified, pivot) emit slivers that are thin on
+// the unchecked cross axis.
+func TestLayouts_NoSubMinimumTiles(t *testing.T) {
+	rects := []r2.Rect{
+		r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 80, Y: 24}),
+		r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 120, Y: 30}),
+		r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 40, Y: 40}),
+		r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 200, Y: 50}),
+	}
+	trees := [][]int64{
+		{100, 90, 80, 5, 4, 3, 2, 1},
+		{200, 5, 4, 3, 2, 1, 1, 1},
+		{50, 40, 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+	}
+	layouts := map[string]Sequential{
+		"slice & dice": SliceAndDice(),
+		"strip":        Strip(),
+		"squarified":   Squarified(),
+		"pivot":        Pivot(),
+	}
+	for name, tiler := range layouts {
+		for ti, sizes := range trees {
+			tree := sampleTree(sizes...)
+			for _, rect := range rects {
+				for depth := 0; depth < 2; depth++ {
+					tiles, _ := tiler.Tile(rect, *tree, depth)
+					for _, til := range tiles {
+						w, h := til.Rect.X.Length(), til.Rect.Y.Length()
+						if w < MINIMUM_WIDTH || h < MINIMUM_HEIGHT {
+							t.Errorf("%s tree%d %v depth%d: emitted sub-minimum tile %.2f x %.2f (min %.0f x %.0f)",
+								name, ti, rect, depth, w, h, MINIMUM_WIDTH, MINIMUM_HEIGHT)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// TestStrip_HidesShortRows pins a concrete case: a row of tiny files that strip
+// lays as a full-width but near-zero-height band must be hidden, not emitted as
+// unusable slivers.
+func TestStrip_HidesShortRows(t *testing.T) {
+	rect := r2.RectFromPoints(r2.Point{X: 0, Y: 0}, r2.Point{X: 80, Y: 24})
+	tree := sampleTree(100, 90, 80, 5, 4, 3, 2, 1)
+	tiles, spillage := Strip().Tile(rect, *tree, 0)
+
+	for _, til := range tiles {
+		if h := til.Rect.Y.Length(); h < MINIMUM_HEIGHT {
+			t.Errorf("emitted short row %.2f tall (< %.0f): %+v", h, MINIMUM_HEIGHT, til.Rect)
+		}
+	}
+	if len(tiles) >= len(tree.Children()) {
+		t.Errorf("expected some tiny files to be hidden, got %d tiles for %d files", len(tiles), len(tree.Children()))
+	}
+	if spillage.X.Length() == 0 && spillage.Y.Length() == 0 {
+		t.Errorf("expected non-zero spillage for hidden rows, got %+v", spillage)
+	}
+}
+
 // TestSequential_SpillageHidesTinyItems verifies the small-file hiding
 // behaviour carries over to the functor engine.
 func TestSequential_SpillageHidesTinyItems(t *testing.T) {

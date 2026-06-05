@@ -148,12 +148,24 @@ func placeChunk(c *Chunk, st *State) {
 }
 
 // stackItems lays each item of a finished chunk inside the chunk's rectangle,
-// stacked along the chunk's axis and sized in proportion to the item. Items
-// that fall below the minimum displayable size are dropped and accumulated
-// into spillage, preserving dux's small-file hiding behaviour.
+// stacked along the chunk's axis and sized in proportion to the item. A tile is
+// only displayable if it meets the minimum size on *both* axes: items thinner
+// than the minimum along the stacking axis are dropped individually, and if the
+// chunk itself is thinner than the minimum along the cross axis (its thickness)
+// the whole chunk is dropped. Dropped extents are accumulated into spillage,
+// preserving dux's small-file hiding behaviour. Checking only the stacking axis
+// is correct for slice & dice, whose single chunk always spans the full cross
+// dimension, but multi-chunk layouts (strip, squarified, pivot) produce thin
+// chunks whose cross dimension must be checked too.
 func stackItems(c *Chunk, spillage *r2.Rect) []Tile {
 	var tiles []Tile
 	if c.Config.Side.vertical() {
+		// Cross axis is X (the column width); stacking axis is Y.
+		if c.Rect.X.Length() < MINIMUM_WIDTH {
+			// Whole column is too narrow to show; hide every item in it.
+			spillage.X.Lo -= c.Rect.X.Length()
+			return tiles
+		}
 		cross := c.Rect.Y.Length()
 		reverse := c.Config.Dir == Up
 		pos := c.Rect.Y.Lo
@@ -181,6 +193,12 @@ func stackItems(c *Chunk, spillage *r2.Rect) []Tile {
 		return tiles
 	}
 
+	// Cross axis is Y (the row height); stacking axis is X.
+	if c.Rect.Y.Length() < MINIMUM_HEIGHT {
+		// Whole row is too short to show; hide every item in it.
+		spillage.Y.Lo -= c.Rect.Y.Length()
+		return tiles
+	}
 	cross := c.Rect.X.Length()
 	reverse := c.Config.Dir == Left
 	pos := c.Rect.X.Lo
